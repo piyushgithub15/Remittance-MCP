@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "remittance": {
+      "command": "node",
+      "args": ["src/server.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
