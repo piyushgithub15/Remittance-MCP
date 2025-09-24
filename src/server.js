@@ -18,6 +18,7 @@ dotenv.config();
 import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney } from './tools/transferMoney.js';
 import { remittanceOrderQuery } from './tools/remittanceOrderQuery.js';
+import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
@@ -180,6 +181,38 @@ class RemittanceMCPServer {
               },
             },
           },
+          {
+            name: 'getBeneficiaries',
+            description: 'Retrieve user\'s saved beneficiaries with optional filtering',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                country: {
+                  type: 'string',
+                  description: 'Filter by destination country (ISO 3166 code, e.g., CN for China, IN for India)',
+                },
+                currency: {
+                  type: 'string',
+                  description: 'Filter by currency (ISO 4217 code, e.g., CNY, INR, USD)',
+                },
+                transferMode: {
+                  type: 'string',
+                  enum: ['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI'],
+                  description: 'Filter by transfer mode',
+                },
+                isActive: {
+                  type: 'boolean',
+                  description: 'Filter by active status (default: true)',
+                },
+                limit: {
+                  type: 'integer',
+                  minimum: 1,
+                  maximum: 100,
+                  description: 'Maximum number of beneficiaries to return (1-100, default: 50)',
+                },
+              },
+            },
+          },
         ],
       };
     });
@@ -196,6 +229,8 @@ class RemittanceMCPServer {
             return await transferMoney(args);
           case 'remittanceOrderQuery':
             return await remittanceOrderQuery(args);
+          case 'getBeneficiaries':
+            return await getBeneficiaries(args);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -302,6 +337,9 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         break;
       case 'remittanceOrderQuery':
         result = await remittanceOrderQuery(params);
+        break;
+      case 'getBeneficiaries':
+        result = await getBeneficiaries(params);
         break;
       default:
         return res.status(400).json({
