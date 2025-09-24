@@ -25,7 +25,8 @@ export const remittanceOrderQuerySchema = z.object({
   transferMode: z.enum(['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI']).optional(),
   country: z.string()
     .length(2, 'country must be a 2-character ISO 3166 country code')
-    .regex(/^[A-Z]{2}$/, 'country must be uppercase (e.g., CN, US)'),
+    .regex(/^[A-Z]{2}$/, 'country must be uppercase (e.g., CN, US)')
+    .optional(),
   currency: z.string()
     .length(3, 'currency must be a 3-character ISO 4217 currency code')
     .regex(/^[A-Z]{3}$/, 'currency must be uppercase (e.g., CNY, USD)')
