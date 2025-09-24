@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import ExchangeRate from '../models/ExchangeRate.js';
 
 // Validation schema for queryExchangeRate parameters
 const queryExchangeRateSchema = Joi.object({
@@ -12,53 +13,9 @@ const queryExchangeRateSchema = Joi.object({
   })
 });
 
-// Mock exchange rate data - in a real implementation, this would come from an external API
-const EXCHANGE_RATES = {
-  'CN': { 'CNY': 1.89, 'icon': 'https://icon.cn.png' },
-  'US': { 'USD': 0.27, 'icon': 'https://icon.us.png' },
-  'IN': { 'INR': 22.50, 'icon': 'https://icon.in.png' },
-  'GB': { 'GBP': 0.21, 'icon': 'https://icon.gb.png' },
-  'EU': { 'EUR': 0.25, 'icon': 'https://icon.eu.png' },
-  'JP': { 'JPY': 40.50, 'icon': 'https://icon.jp.png' },
-  'AU': { 'AUD': 0.41, 'icon': 'https://icon.au.png' },
-  'CA': { 'CAD': 0.37, 'icon': 'https://icon.ca.png' },
-  'SG': { 'SGD': 0.37, 'icon': 'https://icon.sg.png' },
-  'MY': { 'MYR': 1.28, 'icon': 'https://icon.my.png' },
-  'TH': { 'THB': 9.85, 'icon': 'https://icon.th.png' },
-  'PH': { 'PHP': 15.20, 'icon': 'https://icon.ph.png' },
-  'BD': { 'BDT': 29.80, 'icon': 'https://icon.bd.png' },
-  'PK': { 'PKR': 75.30, 'icon': 'https://icon.pk.png' },
-  'LK': { 'LKR': 85.40, 'icon': 'https://icon.lk.png' },
-  'NP': { 'NPR': 36.20, 'icon': 'https://icon.np.png' },
-  'MM': { 'MMK': 570.50, 'icon': 'https://icon.mm.png' },
-  'KH': { 'KHR': 1100.80, 'icon': 'https://icon.kh.png' },
-  'LA': { 'LAK': 5500.20, 'icon': 'https://icon.la.png' },
-  'VN': { 'VND': 6700.50, 'icon': 'https://icon.vn.png' }
-};
-
-// Country names mapping
-const COUNTRY_NAMES = {
-  'CN': 'China',
-  'US': 'United States',
-  'IN': 'India',
-  'GB': 'United Kingdom',
-  'EU': 'European Union',
-  'JP': 'Japan',
-  'AU': 'Australia',
-  'CA': 'Canada',
-  'SG': 'Singapore',
-  'MY': 'Malaysia',
-  'TH': 'Thailand',
-  'PH': 'Philippines',
-  'BD': 'Bangladesh',
-  'PK': 'Pakistan',
-  'LK': 'Sri Lanka',
-  'NP': 'Nepal',
-  'MM': 'Myanmar',
-  'KH': 'Cambodia',
-  'LA': 'Laos',
-  'VN': 'Vietnam'
-};
+// Default from country and currency (UAE)
+const DEFAULT_FROM_COUNTRY = 'AE';
+const DEFAULT_FROM_CURRENCY = 'AED';
 
 /**
  * Query exchange rate for international remittance
@@ -85,8 +42,16 @@ export async function queryExchangeRate(params) {
 
     const { toCountry, toCurrency } = value;
 
-    // Check if country and currency combination is supported
-    if (!EXCHANGE_RATES[toCountry] || !EXCHANGE_RATES[toCountry][toCurrency]) {
+    // Query exchange rate from database
+    const exchangeRateData = await ExchangeRate.findOne({
+      fromCountry: DEFAULT_FROM_COUNTRY,
+      fromCurrency: DEFAULT_FROM_CURRENCY,
+      toCountry: toCountry.toUpperCase(),
+      toCurrency: toCurrency.toUpperCase(),
+      isActive: true
+    });
+
+    if (!exchangeRateData) {
       return {
         content: [
           {
@@ -106,11 +71,6 @@ export async function queryExchangeRate(params) {
       };
     }
 
-    // Get exchange rate data
-    const exchangeRate = EXCHANGE_RATES[toCountry][toCurrency];
-    const countryIcon = EXCHANGE_RATES[toCountry].icon;
-    const countryName = COUNTRY_NAMES[toCountry] || toCountry;
-
     // Build response
     const response = {
       head: {
@@ -120,13 +80,13 @@ export async function queryExchangeRate(params) {
         traceCode: generateTraceCode()
       },
       body: {
-        fromCountryCode: 'AE',
-        fromCurrencyCode: 'AED',
-        fromCurrencyIcon: 'https://icon.ae.png',
-        toCountryCode: toCountry,
-        toCurrencyCode: toCurrency,
-        toCurrencyIcon: countryIcon,
-        exchangeRate: exchangeRate
+        fromCountryCode: exchangeRateData.fromCountry,
+        fromCurrencyCode: exchangeRateData.fromCurrency,
+        fromCurrencyIcon: exchangeRateData.fromCurrencyIcon,
+        toCountryCode: exchangeRateData.toCountry,
+        toCurrencyCode: exchangeRateData.toCurrency,
+        toCurrencyIcon: exchangeRateData.toCurrencyIcon,
+        exchangeRate: exchangeRateData.rate
       }
     };
 
@@ -166,16 +126,27 @@ function generateTraceCode() {
  * Get supported countries and currencies
  * @returns {Object} Supported countries and currencies
  */
-export function getSupportedCurrencies() {
-  const supported = {};
-  for (const [country, currencies] of Object.entries(EXCHANGE_RATES)) {
-    supported[country] = {
-      name: COUNTRY_NAMES[country] || country,
-      currencies: Object.keys(currencies).filter(key => key !== 'icon'),
-      icon: currencies.icon
-    };
+export async function getSupportedCurrencies() {
+  try {
+    const exchangeRates = await ExchangeRate.find({ isActive: true });
+    const supported = {};
+    
+    for (const rate of exchangeRates) {
+      if (!supported[rate.toCountry]) {
+        supported[rate.toCountry] = {
+          name: rate.toCountryName,
+          currencies: [],
+          icon: rate.toCurrencyIcon
+        };
+      }
+      supported[rate.toCountry].currencies.push(rate.toCurrency);
+    }
+    
+    return supported;
+  } catch (error) {
+    console.error('Error getting supported currencies:', error);
+    return {};
   }
-  return supported;
 }
 
 /**
@@ -184,6 +155,19 @@ export function getSupportedCurrencies() {
  * @param {string} currency - Currency code
  * @returns {boolean} True if supported
  */
-export function isSupportedCurrency(country, currency) {
-  return EXCHANGE_RATES[country] && EXCHANGE_RATES[country][currency];
+export async function isSupportedCurrency(country, currency) {
+  try {
+    const exchangeRate = await ExchangeRate.findOne({
+      fromCountry: DEFAULT_FROM_COUNTRY,
+      fromCurrency: DEFAULT_FROM_CURRENCY,
+      toCountry: country.toUpperCase(),
+      toCurrency: currency.toUpperCase(),
+      isActive: true
+    });
+    
+    return !!exchangeRate;
+  } catch (error) {
+    console.error('Error checking supported currency:', error);
+    return false;
+  }
 }

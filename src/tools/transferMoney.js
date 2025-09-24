@@ -1,5 +1,8 @@
 import Joi from 'joi';
 import { v4 as uuidv4 } from 'uuid';
+import Beneficiary from '../models/Beneficiary.js';
+import SuggestedAmount from '../models/SuggestedAmount.js';
+import ExchangeRate from '../models/ExchangeRate.js';
 
 // Validation schema for transferMoney parameters
 const transferMoneySchema = Joi.object({
@@ -9,81 +12,8 @@ const transferMoneySchema = Joi.object({
   callBackProvider: Joi.string().valid('voice', 'text').default('voice')
 });
 
-// Mock beneficiary data - in a real implementation, this would come from a database
-const MOCK_BENEFICIARIES = [
-  {
-    id: 123,
-    title: 'Bank of China 1234567890',
-    name: '张三',
-    currency: 'CNY',
-    icon: 'https://icon.bank.png',
-    country: 'CN',
-    transferModes: ['BANK_TRANSFER'],
-    accountNumber: '1234567890',
-    bankName: 'Bank of China'
-  },
-  {
-    id: 124,
-    title: 'ICBC - 6543210987',
-    name: '李四',
-    currency: 'CNY',
-    icon: 'https://icon.icbc.png',
-    country: 'CN',
-    transferModes: ['BANK_TRANSFER'],
-    accountNumber: '6543210987',
-    bankName: 'ICBC'
-  },
-  {
-    id: 125,
-    title: 'John Smith - Wells Fargo',
-    name: 'John Smith',
-    currency: 'USD',
-    icon: 'https://icon.wellsfargo.png',
-    country: 'US',
-    transferModes: ['BANK_TRANSFER'],
-    accountNumber: '9876543210',
-    bankName: 'Wells Fargo'
-  },
-  {
-    id: 126,
-    title: 'Mary Johnson - Chase',
-    name: 'Mary Johnson',
-    currency: 'USD',
-    icon: 'https://icon.chase.png',
-    country: 'US',
-    transferModes: ['BANK_TRANSFER', 'CASH_PICK_UP'],
-    accountNumber: '1234567890',
-    bankName: 'Chase Bank'
-  },
-  {
-    id: 127,
-    title: 'Raj Patel - SBI',
-    name: 'Raj Patel',
-    currency: 'INR',
-    icon: 'https://icon.sbi.png',
-    country: 'IN',
-    transferModes: ['BANK_TRANSFER', 'UPI'],
-    accountNumber: '1122334455',
-    bankName: 'State Bank of India'
-  }
-];
-
-// Mock suggested amounts
-const SUGGESTED_AMOUNTS = [
-  { id: 1, amount: 1000.00 },
-  { id: 2, amount: 2000.00 },
-  { id: 3, amount: 5000.00 },
-  { id: 4, amount: 10000.00 }
-];
-
-// Exchange rate data (simplified)
-const EXCHANGE_RATES = {
-  'CNY': 1.89,
-  'USD': 0.27,
-  'INR': 22.50,
-  'GBP': 0.21,
-  'EUR': 0.25
-};
+// Default user ID for demo purposes
+const DEFAULT_USER_ID = 'agent1';
 
 // Fee structure
 const FEE_STRUCTURE = {
@@ -159,79 +89,115 @@ export async function transferMoney(params) {
  * @returns {Object} Discovery response
  */
 async function handleDiscoveryStage() {
-  const response = {
-    code: 200,
-    message: 'Success',
-    beneficiaries: MOCK_BENEFICIARIES.map(b => ({
-      id: b.id,
-      title: b.title,
-      name: b.name,
-      currency: b.currency,
-      icon: b.icon
-    })),
-    sendAmounts: SUGGESTED_AMOUNTS,
-    remToken: null,
-    exchangeRate: {
-      fromAmount: {
-        currency: 'AED',
-        amount: 1000.00
-      },
-      fromIconUrl: 'https://icon.ae.png',
-      fromCountryName: 'UAE',
-      rate: '1.89',
-      toAmount: {
-        currency: 'CNY',
-        amount: 1890.00
-      },
-      toIconUrl: 'https://icon.cn.png',
-      toCountryName: 'China',
-      fee: {
-        currency: 'AED',
-        amount: 10.00
-      },
-      feeItems: [
-        {
-          name: 'Service Fee',
-          feeAmount: {
-            currency: 'AED',
-            amount: 10.00
+  try {
+    // Get beneficiaries from database
+    const beneficiaries = await Beneficiary.find({ 
+      userId: DEFAULT_USER_ID, 
+      isActive: true 
+    }).select('id title name currency icon country transferModes');
+
+    // Get suggested amounts from database
+    const suggestedAmounts = await SuggestedAmount.find({ 
+      isActive: true 
+    }).sort({ sortOrder: 1 }).select('amount');
+
+    // Get default exchange rate for display (CNY as example)
+    const defaultExchangeRate = await ExchangeRate.findOne({
+      fromCountry: 'AE',
+      fromCurrency: 'AED',
+      toCountry: 'CN',
+      toCurrency: 'CNY',
+      isActive: true
+    });
+
+    const response = {
+      code: 200,
+      message: 'Success',
+      beneficiaries: beneficiaries.map(b => ({
+        id: b.id,
+        title: b.title,
+        name: b.name,
+        currency: b.currency,
+        icon: b.icon
+      })),
+      sendAmounts: suggestedAmounts.map((sa, index) => ({
+        id: index + 1,
+        amount: sa.amount
+      })),
+      remToken: null,
+      exchangeRate: defaultExchangeRate ? {
+        fromAmount: {
+          currency: defaultExchangeRate.fromCurrency,
+          amount: 1000.00
+        },
+        fromIconUrl: defaultExchangeRate.fromCurrencyIcon,
+        fromCountryName: defaultExchangeRate.fromCountryName,
+        rate: defaultExchangeRate.rate.toString(),
+        toAmount: {
+          currency: defaultExchangeRate.toCurrency,
+          amount: 1000.00 * defaultExchangeRate.rate
+        },
+        toIconUrl: defaultExchangeRate.toCurrencyIcon,
+        toCountryName: defaultExchangeRate.toCountryName,
+        fee: {
+          currency: 'AED',
+          amount: 10.00
+        },
+        feeItems: [
+          {
+            name: 'Service Fee',
+            feeAmount: {
+              currency: 'AED',
+              amount: 10.00
+            }
           }
+        ],
+        orderAmount: {
+          currency: 'AED',
+          amount: 1010.00
+        },
+        channelCode: 'BANK_TRANSFER',
+        transactionMode: 'BANK_TRANSFER'
+      } : null,
+      description: 'Please select a beneficiary and amount to proceed with the transfer.',
+      priceTitle: 'Transfer Details',
+      callBackProviders: [
+        {
+          type: 'voice',
+          url: getCallbackConfig('voice').url,
+          token: getCallbackConfig('voice').token,
+          description: 'Voice-based confirmation callbacks'
+        },
+        {
+          type: 'text',
+          url: getCallbackConfig('text').url,
+          token: getCallbackConfig('text').token,
+          description: 'Text-based confirmation callbacks'
+        }
+      ]
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response)
         }
       ],
-      orderAmount: {
-        currency: 'AED',
-        amount: 1010.00
-      },
-      channelCode: 'BANK_TRANSFER',
-      transactionMode: 'BANK_TRANSFER'
-    },
-    description: 'Please select a beneficiary and amount to proceed with the transfer.',
-    priceTitle: 'Transfer Details',
-    callBackProviders: [
-      {
-        type: 'voice',
-        url: getCallbackConfig('voice').url,
-        token: getCallbackConfig('voice').token,
-        description: 'Voice-based confirmation callbacks'
-      },
-      {
-        type: 'text',
-        url: getCallbackConfig('text').url,
-        token: getCallbackConfig('text').token,
-        description: 'Text-based confirmation callbacks'
-      }
-    ]
-  };
-
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(response)
-      }
-    ],
-    isError: false
-  };
+      isError: false
+    };
+  } catch (error) {
+    console.error('Error in handleDiscoveryStage:', error);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Discovery failed: ${error.message}`
+        }
+      ],
+      isError: true
+    };
+  }
 }
 
 /**
@@ -243,107 +209,158 @@ async function handleDiscoveryStage() {
  * @returns {Object} Execution response
  */
 async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider) {
-  // Find beneficiary
-  const beneficiary = MOCK_BENEFICIARIES.find(b => 
-    b.id.toString() === beneficiaryId || 
-    b.name.toLowerCase().includes(beneficiaryName.toLowerCase())
-  );
-
-  if (!beneficiary) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            code: 608,
-            message: 'Beneficiary not found, please change beneficiary name.',
-            beneficiaries: [],
-            sendAmounts: [],
-            remToken: null,
-            exchangeRate: null
-          })
-        }
+  try {
+    // Find beneficiary in database
+    const beneficiary = await Beneficiary.findOne({
+      $or: [
+        { id: parseInt(beneficiaryId) },
+        { name: { $regex: beneficiaryName, $options: 'i' } }
       ],
-      isError: false
-    };
-  }
+      userId: DEFAULT_USER_ID,
+      isActive: true
+    });
 
-  // Check amount limits
-  if (sendAmount > 50000) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            code: 607,
-            message: 'Amount exceeded limit, please set a smaller amount.'
-          })
-        }
-      ],
-      isError: false
-    };
-  }
-
-  // Check if KYC is required (mock condition)
-  if (sendAmount > 10000) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            code: 610,
-            message: 'Please do KYC for member'
-          })
-        }
-      ],
-      isError: false
-    };
-  }
-
-  // Calculate fees and exchange rate
-  const exchangeRate = EXCHANGE_RATES[beneficiary.currency] || 1.0;
-  const fee = calculateFee(sendAmount);
-  const totalAmount = sendAmount + fee;
-  const receivedAmount = sendAmount * exchangeRate;
-
-  // Generate payment link
-  const paymentToken = generatePaymentToken();
-  const paymentLink = generatePaymentLink(paymentToken, totalAmount, beneficiaryName, callBackProvider);
-  
-  // Get callback configuration
-  const callbackConfig = getCallbackConfig(callBackProvider);
-
-  const response = {
-    code: 200,
-    message: 'Transfer initiated successfully',
-    button: {
-      title: 'Complete Payment',
-      link: paymentLink
-    },
-    paymentLink: paymentLink,
-    callBackProvider: callBackProvider,
-    callBackUrl: callbackConfig.url,
-    callBackToken: callbackConfig.token,
-    transactionDetails: {
-      beneficiary: beneficiary,
-      sendAmount: sendAmount,
-      fee: fee,
-      totalAmount: totalAmount,
-      receivedAmount: receivedAmount,
-      exchangeRate: exchangeRate,
-      currency: beneficiary.currency
+    if (!beneficiary) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 608,
+              message: 'Beneficiary not found, please change beneficiary name.',
+              beneficiaries: [],
+              sendAmounts: [],
+              remToken: null,
+              exchangeRate: null
+            })
+          }
+        ],
+        isError: false
+      };
     }
-  };
 
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(response)
+    // Check amount limits
+    if (sendAmount > 50000) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 607,
+              message: 'Amount exceeded limit, please set a smaller amount.'
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+
+    // Check if KYC is required (mock condition)
+    if (sendAmount > 10000) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 610,
+              message: 'Please do KYC for member'
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+
+    // Get exchange rate from database
+    const exchangeRateData = await ExchangeRate.findOne({
+      fromCountry: 'AE',
+      fromCurrency: 'AED',
+      toCountry: beneficiary.country,
+      toCurrency: beneficiary.currency,
+      isActive: true
+    });
+
+    if (!exchangeRateData) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 400,
+              message: 'Exchange rate not available for this currency pair.'
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+
+    // Calculate fees and exchange rate
+    const exchangeRate = exchangeRateData.rate;
+    const fee = calculateFee(sendAmount);
+    const totalAmount = sendAmount + fee;
+    const receivedAmount = sendAmount * exchangeRate;
+
+    // Generate payment link
+    const paymentToken = generatePaymentToken();
+    const paymentLink = generatePaymentLink(paymentToken, totalAmount, beneficiaryName, callBackProvider);
+    
+    // Get callback configuration
+    const callbackConfig = getCallbackConfig(callBackProvider);
+
+    const response = {
+      code: 200,
+      message: 'Transfer initiated successfully',
+      button: {
+        title: 'Complete Payment',
+        link: paymentLink
+      },
+      paymentLink: paymentLink,
+      callBackProvider: callBackProvider,
+      callBackUrl: callbackConfig.url,
+      callBackToken: callbackConfig.token,
+      transactionDetails: {
+        beneficiary: {
+          id: beneficiary.id,
+          title: beneficiary.title,
+          name: beneficiary.name,
+          currency: beneficiary.currency,
+          icon: beneficiary.icon,
+          country: beneficiary.country,
+          transferModes: beneficiary.transferModes,
+          accountNumber: beneficiary.accountNumber,
+          bankName: beneficiary.bankName
+        },
+        sendAmount: sendAmount,
+        fee: fee,
+        totalAmount: totalAmount,
+        receivedAmount: receivedAmount,
+        exchangeRate: exchangeRate,
+        currency: beneficiary.currency
       }
-    ],
-    isError: false
-  };
+    };
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response)
+        }
+      ],
+      isError: false
+    };
+  } catch (error) {
+    console.error('Error in handleExecutionStage:', error);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Transfer execution failed: ${error.message}`
+        }
+      ],
+      isError: true
+    };
+  }
 }
 
 /**

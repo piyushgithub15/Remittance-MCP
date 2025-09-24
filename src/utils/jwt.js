@@ -18,7 +18,7 @@ export function generateJWTToken(userId, scope = 'read', additionalClaims = {}) 
     sub: userId,
     scope: scope,
     iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + (3600), // 1 hour default
+    exp: Math.floor(Date.now() / 1000) + (360000000), // 1 hour default
     ...additionalClaims
   };
 

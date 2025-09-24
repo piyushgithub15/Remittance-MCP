@@ -19,9 +19,11 @@ import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney } from './tools/transferMoney.js';
 import { remittanceOrderQuery } from './tools/remittanceOrderQuery.js';
 import { generateJWTToken } from './utils/jwt.js';
+import { connectDatabase } from './config/database.js';
+import { seedAllData } from './utils/seedData.js';
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8070;
 
 // Middleware
 app.use(helmet());
@@ -367,20 +369,31 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 
 // Function to start Express server with MCP integration
 async function startExpressServerWithMCP() {
-  // Create and start MCP server
-  mcpServerInstance = new RemittanceMCPServer();
-  await mcpServerInstance.run();
-  
-  // Start Express server
-  app.listen(PORT, () => {
-    console.log(`Remittance MCP Server running on port ${PORT}`);
-    console.log(`Health check: http://localhost:${PORT}/actuator/health`);
-    console.log(`Token generation: POST http://localhost:${PORT}/auth/token`);
-    console.log(`MCP messages: POST http://localhost:${PORT}/mcp/messages`);
-    console.log(`MCP StreamableHTTP (Stateless): POST http://localhost:${PORT}/mcp`);
-    console.log(`MCP SSE (Stateful): GET http://localhost:${PORT}/mcp/sse`);
-    console.log(`MCP Session Delete: DELETE http://localhost:${PORT}/mcp/session/:sessionId`);
-  });
+  try {
+    // Connect to MongoDB
+    await connectDatabase();
+    
+    // // Seed initial data
+    // await seedAllData();
+    
+    // Create and start MCP server
+    mcpServerInstance = new RemittanceMCPServer();
+    await mcpServerInstance.run();
+    
+    // Start Express server
+    app.listen(PORT, () => {
+      console.log(`Remittance MCP Server running on port ${PORT}`);
+      console.log(`Health check: http://localhost:${PORT}/actuator/health`);
+      console.log(`Token generation: POST http://localhost:${PORT}/auth/token`);
+      console.log(`MCP messages: POST http://localhost:${PORT}/mcp/messages`);
+      console.log(`MCP StreamableHTTP (Stateless): POST http://localhost:${PORT}/mcp`);
+      console.log(`MCP SSE (Stateful): GET http://localhost:${PORT}/mcp/sse`);
+      console.log(`MCP Session Delete: DELETE http://localhost:${PORT}/mcp/session/:sessionId`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
 export { RemittanceMCPServer };
