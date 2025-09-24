@@ -92,7 +92,7 @@ export async function getBeneficiaries(params) {
       code: 200,
       message: 'Success',
       data: beneficiaries.map(beneficiary => ({
-        id: beneficiary.id,
+        beneficiaryId: beneficiary.id,
         title: beneficiary.title,
         name: beneficiary.name,
         currency: beneficiary.currency,
