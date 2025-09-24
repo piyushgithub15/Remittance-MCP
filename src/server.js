@@ -321,16 +321,75 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
 });
 
 // Callback endpoint for remittance status updates
-app.post('/callback/remittance', (req, res) => {
-  const { notifyEvent, data } = req.body;
-  
-  if (notifyEvent === 'remittance_pay_status') {
-    console.log('Remittance payment status update:', data);
-    // Here you would typically process the callback data
-    // and notify the appropriate user or system
+app.post('/callback/remittance', async (req, res) => {
+  try {
+    const { notifyEvent, data } = req.body;
+    
+    if (notifyEvent === 'remittance_pay_status') {
+      console.log('Remittance payment status update:', data);
+      
+      // Import the updateOrderStatus function
+      const { updateOrderStatus } = await import('./tools/transferMoney.js');
+      
+      // Update order status based on payment result
+      if (data.orderNo && data.status) {
+        const updatedOrder = await updateOrderStatus(
+          data.orderNo, 
+          data.status, 
+          data.failReason
+        );
+        
+        if (updatedOrder) {
+          console.log(`Order ${data.orderNo} status updated to ${data.status}`);
+        } else {
+          console.log(`Failed to update order ${data.orderNo}`);
+        }
+      }
+    }
+    
+    res.json({ status: 'received' });
+  } catch (error) {
+    console.error('Error processing remittance callback:', error);
+    res.status(500).json({ status: 'error', message: error.message });
   }
-  
-  res.json({ status: 'received' });
+});
+
+// Test endpoint to simulate payment completion
+app.post('/test/complete-payment', async (req, res) => {
+  try {
+    const { orderNo, status = 'SUCCESS', failReason = null } = req.body;
+    
+    if (!orderNo) {
+      return res.status(400).json({ error: 'orderNo is required' });
+    }
+    
+    // Import the updateOrderStatus function
+    const { updateOrderStatus } = await import('./tools/transferMoney.js');
+    
+    const updatedOrder = await updateOrderStatus(orderNo, status, failReason);
+    
+    if (updatedOrder) {
+      res.json({ 
+        success: true, 
+        message: `Order ${orderNo} status updated to ${status}`,
+        order: {
+          orderNo: updatedOrder.orderNo,
+          status: updatedOrder.status,
+          fromAmount: updatedOrder.fromAmount,
+          feeAmount: updatedOrder.feeAmount,
+          totalPayAmount: updatedOrder.totalPayAmount
+        }
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        message: `Order ${orderNo} not found` 
+      });
+    }
+  } catch (error) {
+    console.error('Error completing payment:', error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Error handling middleware

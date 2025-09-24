@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Beneficiary from '../models/Beneficiary.js';
 import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
+import RemittanceOrder from '../models/RemittanceOrder.js';
 
 // Validation schema for transferMoney parameters
 const transferMoneySchema = Joi.object({
@@ -308,9 +309,45 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
     // Get callback configuration
     const callbackConfig = getCallbackConfig(callBackProvider);
 
+    // Generate order number
+    const orderNo = generateOrderNumber();
+    
+    // Create remittance order in database
+    const remittanceOrder = new RemittanceOrder({
+      orderNo: orderNo,
+      userId: DEFAULT_USER_ID,
+      beneficiaryId: beneficiary._id,
+      fromAmount: sendAmount,
+      feeAmount: fee,
+      totalPayAmount: totalAmount,
+      status: 'PENDING', // Initial status
+      dateDesc: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      date: new Date(),
+      failReason: null,
+      amlHoldUrl: null,
+      orderDetailUrl: `https://order-detail.example.com/${orderNo}`,
+      transferMode: beneficiary.transferModes[0], // Use first available transfer mode
+      country: beneficiary.country,
+      currency: beneficiary.currency,
+      beneficiaryName: beneficiary.name,
+      description: `Transfer to ${beneficiary.bankName}`,
+      exchangeRate: exchangeRate,
+      receivedAmount: receivedAmount,
+      paymentToken: paymentToken,
+      paymentLink: paymentLink,
+      callbackProvider: callBackProvider,
+      callbackUrl: callbackConfig.url,
+      callbackToken: callbackConfig.token,
+      traceCode: generateTraceCode()
+    });
+
+    // Save the order to database
+    await remittanceOrder.save();
+
     const response = {
       code: 200,
       message: 'Transfer initiated successfully',
+      orderNo: orderNo,
       button: {
         title: 'Complete Payment',
         link: paymentLink
@@ -383,6 +420,16 @@ function generatePaymentToken() {
 }
 
 /**
+ * Generate order number
+ * @returns {string} Order number
+ */
+function generateOrderNumber() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return `${timestamp}${random}`;
+}
+
+/**
  * Generate payment link
  * @param {string} token - Payment token
  * @param {number} amount - Total amount
@@ -428,4 +475,45 @@ export function getCallbackConfig(provider = 'voice') {
  */
 function generateTraceCode() {
   return `TRC${Date.now()}${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+}
+
+/**
+ * Update remittance order status
+ * @param {string} orderNo - Order number
+ * @param {string} status - New status
+ * @param {string} [failReason] - Failure reason if status is FAILED
+ * @returns {Object|null} Updated order or null if not found
+ */
+export async function updateOrderStatus(orderNo, status, failReason = null) {
+  try {
+    const updateData = { status };
+    if (failReason) {
+      updateData.failReason = failReason;
+    }
+    
+    const updatedOrder = await RemittanceOrder.findOneAndUpdate(
+      { orderNo },
+      updateData,
+      { new: true }
+    );
+    
+    return updatedOrder;
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    return null;
+  }
+}
+
+/**
+ * Get order by order number
+ * @param {string} orderNo - Order number
+ * @returns {Object|null} Order details or null if not found
+ */
+export async function getOrderByNumber(orderNo) {
+  try {
+    return await RemittanceOrder.findOne({ orderNo }).populate('beneficiaryId');
+  } catch (error) {
+    console.error('Error getting order by number:', error);
+    return null;
+  }
 }
