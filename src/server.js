@@ -147,6 +147,7 @@ class RemittanceMCPServer {
                   description: 'Callback provider type: voice for voice confirmation or text for text confirmation (default: voice)',
                 },
               },
+              required: ['beneficiaryId', 'beneficiaryName', 'sendAmount'],
             },
           },
           {
@@ -179,6 +180,7 @@ class RemittanceMCPServer {
                   description: 'Maximum number of orders to return (1-50, default: 10)',
                 },
               },
+              required: ['country'],
             },
           },
           {
