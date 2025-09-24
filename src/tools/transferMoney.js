@@ -1,17 +1,8 @@
-import Joi from 'joi';
 import { v4 as uuidv4 } from 'uuid';
 import Beneficiary from '../models/Beneficiary.js';
 import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
 import RemittanceOrder from '../models/RemittanceOrder.js';
-
-// Validation schema for transferMoney parameters
-const transferMoneySchema = Joi.object({
-  beneficiaryId: Joi.string().optional().allow(null, ''),
-  beneficiaryName: Joi.string().optional().allow(null, ''),
-  sendAmount: Joi.number().positive().optional().allow(null),
-  callBackProvider: Joi.string().valid('voice', 'text').default('voice')
-});
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -35,21 +26,7 @@ const FEE_STRUCTURE = {
  */
 export async function transferMoney(params) {
   try {
-    // Validate input parameters
-    const { error, value } = transferMoneySchema.validate(params);
-    if (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Transfer money failed: ${error.details[0].message}`
-          }
-        ],
-        isError: true
-      };
-    }
-
-    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider } = value;
+    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider } = params;
 
     // Stage 1: Discovery call (no beneficiaryId, beneficiaryName, or sendAmount)
     if (!beneficiaryId && !beneficiaryName && !sendAmount) {
@@ -211,10 +188,13 @@ async function handleDiscoveryStage() {
  */
 async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider) {
   try {
+    // Convert beneficiaryId to number (already validated by Zod)
+    const beneficiaryIdNum = parseInt(beneficiaryId);
+
     // Find beneficiary in database
     const beneficiary = await Beneficiary.findOne({
       $or: [
-        { id: parseInt(beneficiaryId) },
+        { id: beneficiaryIdNum },
         { name: { $regex: beneficiaryName, $options: 'i' } }
       ],
       userId: DEFAULT_USER_ID,

@@ -22,6 +22,14 @@ import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
+import { 
+  transferMoneySchema, 
+  queryExchangeRateSchema, 
+  remittanceOrderQuerySchema, 
+  getBeneficiariesSchema,
+  validateWithZod,
+  createErrorResponse 
+} from './utils/validation.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -131,7 +139,8 @@ class RemittanceMCPServer {
               properties: {
                 beneficiaryId: {
                   type: 'string',
-                  description: 'Beneficiary ID from discovery call (e.g., 123). Leave null for discovery stage',
+                  pattern: '^[0-9]+$',
+                  description: 'Beneficiary ID from discovery call (e.g., 123). Must be a numeric string.',
                 },
                 beneficiaryName: {
                   type: 'string',
@@ -226,13 +235,37 @@ class RemittanceMCPServer {
       try {
         switch (name) {
           case 'queryExchangeRate':
-            return await queryExchangeRate(args);
+            // Validate using Zod schema
+            const exchangeValidation = validateWithZod(queryExchangeRateSchema, args);
+            if (!exchangeValidation.success) {
+              return createErrorResponse(exchangeValidation.error);
+            }
+            
+            return await queryExchangeRate(exchangeValidation.data);
           case 'transferMoney':
-            return await transferMoney(args);
+            // Validate using Zod schema
+            const transferValidation = validateWithZod(transferMoneySchema, args);
+            if (!transferValidation.success) {
+              return createErrorResponse(transferValidation.error);
+            }
+            
+            return await transferMoney(transferValidation.data);
           case 'remittanceOrderQuery':
-            return await remittanceOrderQuery(args);
+            // Validate using Zod schema
+            const orderValidation = validateWithZod(remittanceOrderQuerySchema, args);
+            if (!orderValidation.success) {
+              return createErrorResponse(orderValidation.error);
+            }
+            
+            return await remittanceOrderQuery(orderValidation.data);
           case 'getBeneficiaries':
-            return await getBeneficiaries(args);
+            // Validate using Zod schema
+            const beneficiariesValidation = validateWithZod(getBeneficiariesSchema, args);
+            if (!beneficiariesValidation.success) {
+              return createErrorResponse(beneficiariesValidation.error);
+            }
+            
+            return await getBeneficiaries(beneficiariesValidation.data);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -332,16 +365,48 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
     let result;
     switch (method) {
       case 'queryExchangeRate':
-        result = await queryExchangeRate(params);
+        // Validate using Zod schema
+        const exchangeValidation = validateWithZod(queryExchangeRateSchema, params);
+        if (!exchangeValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${exchangeValidation.error}`
+          });
+        }
+        result = await queryExchangeRate(exchangeValidation.data);
         break;
       case 'transferMoney':
-        result = await transferMoney(params);
+        // Validate using Zod schema
+        const transferValidation = validateWithZod(transferMoneySchema, params);
+        if (!transferValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${transferValidation.error}`
+          });
+        }
+        result = await transferMoney(transferValidation.data);
         break;
       case 'remittanceOrderQuery':
-        result = await remittanceOrderQuery(params);
+        // Validate using Zod schema
+        const orderValidation = validateWithZod(remittanceOrderQuerySchema, params);
+        if (!orderValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${orderValidation.error}`
+          });
+        }
+        result = await remittanceOrderQuery(orderValidation.data);
         break;
       case 'getBeneficiaries':
-        result = await getBeneficiaries(params);
+        // Validate using Zod schema
+        const beneficiariesValidation = validateWithZod(getBeneficiariesSchema, params);
+        if (!beneficiariesValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${beneficiariesValidation.error}`
+          });
+        }
+        result = await getBeneficiaries(beneficiariesValidation.data);
         break;
       default:
         return res.status(400).json({
