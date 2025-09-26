@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # REST API Server (Development)
+  remittance-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.api.dev
+    container_name: remittance-api-dev
+    ports:
+      - "8070:8070"
+    environment:
+      - NODE_ENV=development
+      - PORT=8070
+      - MONGODB_URI=mongodb://mongodb:27017/remittance
+      - JWT_SECRET=dev-jwt-secret-key
+      - JWT_EXPIRES_IN=24h
+      - CALLBACK_VOICE_URL=http://localhost:8080/voice/
+      - CALLBACK_VOICE_TOKEN=devVoiceToken
+      - CALLBACK_TEXT_URL=http://localhost:8080/text/
+      - CALLBACK_TEXT_TOKEN=devTextToken
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - remittance-network
+    volumes:
+      - ./src:/app/src
+      - ./logs:/app/logs
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: remittance-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=remittance
+    volumes:
+      - mongodb_dev_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - remittance-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Express (Database Admin UI)
+  mongo-express:
+    image: mongo-express:1.0.0
+    container_name: remittance-mongo-express-dev
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:password@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - remittance-network
+
+volumes:
+  mongodb_dev_data:
+    driver: local
+
+networks:
+  remittance-network:
+    driver: bridge

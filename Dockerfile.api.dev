@@ -1,0 +1,54 @@
+# Development Dockerfile for REST API Server
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies including development tools
+RUN apk add --no-cache \
+    dumb-init \
+    curl \
+    git \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S remittance -u 1001
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci && \
+    npm cache clean --force
+
+# Copy source code
+COPY --chown=remittance:nodejs . .
+
+# Create necessary directories
+RUN mkdir -p /app/logs && \
+    chown -R remittance:nodejs /app
+
+# Switch to non-root user
+USER remittance
+
+# Expose port for development
+EXPOSE 8070
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8070/actuator/health || exit 1
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start with nodemon for development (auto-reload on changes)
+CMD ["npm", "run", "dev"]
+
+# Labels for metadata
+LABEL maintainer="Remittance API Team"
+LABEL version="1.0.0-dev"
+LABEL description="Development REST API Server for Remittance Operations"
+LABEL api.type="REST"
+LABEL api.port="8070"
+LABEL environment="development"

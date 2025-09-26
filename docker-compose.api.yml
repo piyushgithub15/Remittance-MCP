@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # REST API Server
+  remittance-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: remittance-api-server
+    ports:
+      - "8070:8070"
+    environment:
+      - NODE_ENV=production
+      - PORT=8070
+      - MONGODB_URI=mongodb://mongodb:27017/remittance
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=1h
+      - CALLBACK_VOICE_URL=http://localhost:8080/voice/
+      - CALLBACK_VOICE_TOKEN=yourVoiceToken
+      - CALLBACK_TEXT_URL=http://localhost:8080/text/
+      - CALLBACK_TEXT_TOKEN=yourTextToken
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - remittance-network
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8070/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: remittance-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=remittance
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - remittance-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MongoDB Express (Database Admin UI)
+  mongo-express:
+    image: mongo-express:1.0.0
+    container_name: remittance-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=password
+      - ME_CONFIG_MONGODB_URL=mongodb://admin:password@mongodb:27017/
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - remittance-network
+
+  # Nginx Reverse Proxy (Optional)
+  nginx:
+    image: nginx:alpine
+    container_name: remittance-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.api.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - remittance-api
+    restart: unless-stopped
+    networks:
+      - remittance-network
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  remittance-network:
+    driver: bridge
