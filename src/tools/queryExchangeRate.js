@@ -1,16 +1,10 @@
-import Joi from 'joi';
+import { z } from 'zod';
 import ExchangeRate from '../models/ExchangeRate.js';
 
 // Validation schema for queryExchangeRate parameters
-const queryExchangeRateSchema = Joi.object({
-  toCountry: Joi.string().length(2).required().messages({
-    'string.length': 'toCountry must be a 2-character ISO 3166 country code',
-    'any.required': 'toCountry is required'
-  }),
-  toCurrency: Joi.string().length(3).required().messages({
-    'string.length': 'toCurrency must be a 3-character ISO 4217 currency code',
-    'any.required': 'toCurrency is required'
-  })
+export const queryExchangeRateSchema = z.object({
+  toCountry: z.string().length(2, 'toCountry must be a 2-character ISO 3166 country code'),
+  toCurrency: z.string().length(3, 'toCurrency must be a 3-character ISO 4217 currency code')
 });
 
 // Default from country and currency (UAE)
@@ -27,20 +21,20 @@ const DEFAULT_FROM_CURRENCY = 'AED';
 export async function queryExchangeRate(params) {
   try {
     // Validate input parameters
-    const { error, value } = queryExchangeRateSchema.validate(params);
-    if (error) {
+    const validation = queryExchangeRateSchema.safeParse(params);
+    if (!validation.success) {
       return {
         content: [
           {
             type: 'text',
-            text: `Query exchange rate failed: ${error.details[0].message}`
+            text: `Query exchange rate failed: ${validation.error.errors[0].message}`
           }
         ],
         isError: true
       };
     }
 
-    const { toCountry, toCurrency } = value;
+    const { toCountry, toCurrency } = validation.data;
 
     // Query exchange rate from database
     const exchangeRateData = await ExchangeRate.findOne({

@@ -119,6 +119,102 @@ const remittanceOrderSchema = new mongoose.Schema({
   traceCode: {
     type: String,
     default: null
+  },
+  
+  // Status tracking fields
+  statusHistory: [{
+    status: {
+      type: String,
+      enum: ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'AML_HOLD'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    reason: {
+      type: String,
+      default: null
+    },
+    updatedBy: {
+      type: String,
+      enum: ['system', 'customer', 'bank', 'admin'],
+      default: 'system'
+    }
+  }],
+  
+  // Delivery tracking
+  expectedDeliveryTime: {
+    type: Date,
+    default: null
+  },
+  actualDeliveryTime: {
+    type: Date,
+    default: null
+  },
+  deliveryStatus: {
+    type: String,
+    enum: ['pending', 'delivered', 'delayed', 'failed'],
+    default: 'pending'
+  },
+  
+  // Customer service fields
+  lastCustomerInquiry: {
+    type: Date,
+    default: null
+  },
+  inquiryCount: {
+    type: Number,
+    default: 0
+  },
+  escalationLevel: {
+    type: Number,
+    min: 0,
+    max: 3,
+    default: 0
+  },
+  escalationReason: {
+    type: String,
+    default: null
+  },
+  conversationSummary: {
+    type: String,
+    default: null
+  },
+  
+  // Bank processing details
+  bankProcessingTime: {
+    type: Date,
+    default: null
+  },
+  bankReference: {
+    type: String,
+    default: null
+  },
+  bankResponseCode: {
+    type: String,
+    default: null
+  },
+  
+  // Timeframe management
+  originalTimeframe: {
+    type: String,
+    default: null
+  },
+  updatedTimeframe: {
+    type: String,
+    default: null
+  },
+  timeframeReason: {
+    type: String,
+    default: null
+  },
+  
+  // Payment method tracking
+  paymentMethod: {
+    type: String,
+    enum: ['CARD', 'WALLET', 'BANK_ACCOUNT', 'CASH'],
+    default: 'CARD'
   }
 }, {
   timestamps: true

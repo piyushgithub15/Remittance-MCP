@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
 import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
@@ -6,6 +7,14 @@ import RemittanceOrder from '../models/RemittanceOrder.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
+
+// Validation schema for transferMoney parameters
+export const transferMoneySchema = z.object({
+  beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string').optional(),
+  beneficiaryName: z.string().optional(),
+  sendAmount: z.number().positive('sendAmount must be a positive number').optional(),
+  callBackProvider: z.enum(['voice', 'text']).optional()
+});
 
 // Fee structure
 const FEE_STRUCTURE = {

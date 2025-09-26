@@ -1,15 +1,13 @@
-import Joi from 'joi';
+import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
 
 // Validation schema for remittanceOrderQuery parameters
-const remittanceOrderQuerySchema = Joi.object({
-  transferMode: Joi.string().valid('BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI').optional(),
-  country: Joi.string().length(2).optional(),
-  currency: Joi.string().length(3).optional(),
-  orderDate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional().messages({
-    'string.pattern.base': 'orderDate must be in YYYY-MM-DD format'
-  }),
-  orderCount: Joi.number().integer().min(1).max(50).default(10)
+export const remittanceOrderQuerySchema = z.object({
+  transferMode: z.enum(['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI']).optional(),
+  country: z.string().length(2, 'country must be a 2-character ISO 3166 country code').optional(),
+  currency: z.string().length(3, 'currency must be a 3-character ISO 4217 currency code').optional(),
+  orderDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'orderDate must be in YYYY-MM-DD format').optional(),
+  orderCount: z.number().int().min(1).max(50).default(10)
 });
 
 // Default user ID for demo purposes
@@ -28,20 +26,20 @@ const DEFAULT_USER_ID = 'agent1';
 export async function remittanceOrderQuery(params) {
   try {
     // Validate input parameters
-    const { error, value } = remittanceOrderQuerySchema.validate(params);
-    if (error) {
+    const validation = remittanceOrderQuerySchema.safeParse(params);
+    if (!validation.success) {
       return {
         content: [
           {
             type: 'text',
-            text: `Missing required parameter: ${error.details[0].message}`
+            text: `Missing required parameter: ${validation.error.errors[0].message}`
           }
         ],
         isError: true
       };
     }
 
-    const { transferMode, country, currency, orderDate, orderCount } = value;
+    const { transferMode, country, currency, orderDate, orderCount } = validation.data;
 
     // Build query filters
     const query = { userId: DEFAULT_USER_ID };

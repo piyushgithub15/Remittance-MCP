@@ -1,27 +1,27 @@
 {
-  "name": "remittance-mcp-server",
+  "name": "remittance-api-server",
   "version": "1.0.0",
-  "description": "MCP Server for Remittance API with JWT authentication",
-  "main": "src/index.js",
+  "description": "Express.js API Server for Remittance with JWT authentication",
+  "main": "src/main.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "mcp": "node src/server.js --mcp",
-    "dev": "node --watch src/server.js",
+    "start": "node src/main.js",
+    "dev": "node --watch src/main.js",
     "test": "node --test test/*.test.js",
-    "inspect": "npx @modelcontextprotocol/inspector node src/server.js"
+    "test-server": "node test-normal-server.js",
+    "test-transaction-status": "node test-transaction-status.js",
+    "validate-openapi": "node validate-openapi.js"
   },
   "keywords": [
-    "mcp",
     "remittance",
     "api",
     "jwt",
-    "nodejs"
+    "nodejs",
+    "express"
   ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",

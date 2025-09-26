@@ -1,17 +1,13 @@
-import Joi from 'joi';
+import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
 
 // Validation schema for getBeneficiaries parameters
-const getBeneficiariesSchema = Joi.object({
-  country: Joi.string().length(2).optional().messages({
-    'string.length': 'country must be a 2-character ISO 3166 country code'
-  }),
-  currency: Joi.string().length(3).optional().messages({
-    'string.length': 'currency must be a 3-character ISO 4217 currency code'
-  }),
-  transferMode: Joi.string().valid('BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI').optional(),
-  isActive: Joi.boolean().optional().default(true),
-  limit: Joi.number().integer().min(1).max(100).default(50)
+export const getBeneficiariesSchema = z.object({
+  country: z.string().length(2, 'country must be a 2-character ISO 3166 country code').optional(),
+  currency: z.string().length(3, 'currency must be a 3-character ISO 4217 currency code').optional(),
+  transferMode: z.enum(['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI']).optional(),
+  isActive: z.boolean().optional().default(true),
+  limit: z.number().int().min(1).max(100).default(50)
 });
 
 // Default user ID for demo purposes
@@ -30,20 +26,20 @@ const DEFAULT_USER_ID = 'agent1';
 export async function getBeneficiaries(params) {
   try {
     // Validate input parameters
-    const { error, value } = getBeneficiariesSchema.validate(params);
-    if (error) {
+    const validation = getBeneficiariesSchema.safeParse(params);
+    if (!validation.success) {
       return {
         content: [
           {
             type: 'text',
-            text: `Get beneficiaries failed: ${error.details[0].message}`
+            text: `Get beneficiaries failed: ${validation.error.errors[0].message}`
           }
         ],
         isError: true
       };
     }
 
-    const { country, currency, transferMode, isActive, limit } = value;
+    const { country, currency, transferMode, isActive, limit } = validation.data;
 
     // Build query filters
     const query = { 

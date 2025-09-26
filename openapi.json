@@ -1,0 +1,1401 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Remittance API Server",
+    "version": "1.0.0",
+    "description": "A comprehensive API for international remittance operations including exchange rate queries, money transfers, beneficiary management, and order tracking. This API supports two-stage transfer processes with JWT authentication and real-time payment callbacks.",
+    "contact": {
+      "name": "API Support",
+      "email": "support@remittance-api.com"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8070",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.remittance.com",
+      "description": "Production server"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    },
+    {
+      "QueryToken": []
+    }
+  ],
+  "paths": {
+    "/actuator/health": {
+      "get": {
+        "summary": "Health check endpoint",
+        "description": "Returns the current health status of the API server",
+        "operationId": "getHealthStatus",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is healthy and running",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "UP"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-01-15T10:30:00.000Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "post": {
+        "summary": "Generate JWT authentication token",
+        "description": "Creates a JWT token for API authentication. Used for testing and development.",
+        "operationId": "generateAuthToken",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "description": "User identifier",
+                    "example": "agent1",
+                    "default": "agent1"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "description": "Token scope/permissions",
+                    "example": "read",
+                    "default": "read"
+                  }
+                },
+                "example": {
+                  "userId": "test-user",
+                  "scope": "read"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "JWT authentication token",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "expiresIn": {
+                      "type": "string",
+                      "description": "Token expiration time",
+                      "example": "1h"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/exchange-rate": {
+      "post": {
+        "summary": "Query exchange rates",
+        "description": "Retrieve current exchange rates for international remittance transactions",
+        "operationId": "queryExchangeRate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["toCountry", "toCurrency"],
+                "properties": {
+                  "toCountry": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Destination country code (ISO 3166)",
+                    "example": "CN"
+                  },
+                  "toCurrency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Destination currency code (ISO 4217)",
+                    "example": "CNY"
+                  }
+                },
+                "example": {
+                  "toCountry": "CN",
+                  "toCurrency": "CNY"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exchange rate retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "head": {
+                          "type": "object",
+                          "properties": {
+                            "applyStatus": {
+                              "type": "string",
+                              "example": "SUCCESS"
+                            },
+                            "code": {
+                              "type": "string",
+                              "example": "200"
+                            },
+                            "msg": {
+                              "type": "string",
+                              "example": "OK"
+                            },
+                            "traceCode": {
+                              "type": "string",
+                              "example": "TRC1705312200000ABC123"
+                            }
+                          }
+                        },
+                        "body": {
+                          "type": "object",
+                          "properties": {
+                            "fromCountryCode": {
+                              "type": "string",
+                              "example": "AE"
+                            },
+                            "fromCurrencyCode": {
+                              "type": "string",
+                              "example": "AED"
+                            },
+                            "fromCurrencyIcon": {
+                              "type": "string",
+                              "example": "🇦🇪"
+                            },
+                            "toCountryCode": {
+                              "type": "string",
+                              "example": "CN"
+                            },
+                            "toCurrencyCode": {
+                              "type": "string",
+                              "example": "CNY"
+                            },
+                            "toCurrencyIcon": {
+                              "type": "string",
+                              "example": "🇨🇳"
+                            },
+                            "exchangeRate": {
+                              "type": "number",
+                              "example": 1.85
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters or unsupported currency pair",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transfer": {
+      "post": {
+        "summary": "Transfer money",
+        "description": "Execute international money transfers with a two-stage process:\n1. Discovery stage (empty body) - Returns available beneficiaries and suggested amounts\n2. Execution stage (with parameters) - Processes the actual transfer",
+        "operationId": "transferMoney",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "beneficiaryId": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$",
+                    "description": "Beneficiary ID from discovery call (numeric string)",
+                    "example": "123"
+                  },
+                  "beneficiaryName": {
+                    "type": "string",
+                    "description": "Beneficiary name for identification",
+                    "example": "John Smith"
+                  },
+                  "sendAmount": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "description": "Amount to send in AED",
+                    "example": 1000.50
+                  },
+                  "callBackProvider": {
+                    "type": "string",
+                    "enum": ["voice", "text"],
+                    "description": "Callback provider type for confirmation",
+                    "example": "voice",
+                    "default": "voice"
+                  }
+                },
+                "example": {
+                  "beneficiaryId": "123",
+                  "beneficiaryName": "John Smith",
+                  "sendAmount": 1000,
+                  "callBackProvider": "voice"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/DiscoveryResponse"
+                        },
+                        {
+                          "$ref": "#/components/schemas/TransferResponse"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters or transfer validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orders": {
+      "post": {
+        "summary": "Query remittance orders",
+        "description": "Retrieve remittance transaction history and status for a user with optional filtering",
+        "operationId": "queryRemittanceOrders",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transferMode": {
+                    "type": "string",
+                    "enum": ["BANK_TRANSFER", "CASH_PICK_UP", "MOBILE_WALLET", "UPI"],
+                    "description": "Filter by transfer mode",
+                    "example": "BANK_TRANSFER"
+                  },
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Filter by destination country (ISO 3166)",
+                    "example": "CN"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Filter by destination currency (ISO 4217)",
+                    "example": "CNY"
+                  },
+                  "orderDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Filter by order creation date (YYYY-MM-DD)",
+                    "example": "2024-01-15"
+                  },
+                  "orderCount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Maximum number of orders to return",
+                    "example": 10
+                  }
+                },
+                "example": {
+                  "country": "CN",
+                  "orderCount": 10
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Orders retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "example": 200
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Success"
+                        },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Order"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/beneficiaries": {
+      "post": {
+        "summary": "Get user's beneficiaries",
+        "description": "Retrieve user's saved beneficiaries with optional filtering by country, currency, and transfer mode",
+        "operationId": "getBeneficiaries",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Filter by destination country (ISO 3166)",
+                    "example": "CN"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Filter by currency (ISO 4217)",
+                    "example": "CNY"
+                  },
+                  "transferMode": {
+                    "type": "string",
+                    "enum": ["BANK_TRANSFER", "CASH_PICK_UP", "MOBILE_WALLET", "UPI"],
+                    "description": "Filter by transfer mode",
+                    "example": "BANK_TRANSFER"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Filter by active status",
+                    "example": true
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50,
+                    "description": "Maximum number of beneficiaries to return",
+                    "example": 10
+                  }
+                },
+                "example": {
+                  "country": "CN",
+                  "limit": 10
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Beneficiaries retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "integer",
+                          "example": 200
+                        },
+                        "message": {
+                          "type": "string",
+                          "example": "Success"
+                        },
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Beneficiary"
+                          }
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 5
+                        },
+                        "filters": {
+                          "type": "object",
+                          "properties": {
+                            "country": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "currency": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "transferMode": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "isActive": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/callback/remittance": {
+      "post": {
+        "summary": "Payment status callback",
+        "description": "Webhook endpoint for receiving payment status updates from payment providers",
+        "operationId": "handlePaymentCallback",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notifyEvent": {
+                    "type": "string",
+                    "example": "remittance_pay_status"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "orderNo": {
+                        "type": "string",
+                        "example": "1705312200000ABC123"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["SUCCESS", "FAILED", "PENDING", "CANCELLED", "AML_HOLD"],
+                        "example": "SUCCESS"
+                      },
+                      "failReason": {
+                        "type": "string",
+                        "nullable": true,
+                        "example": null
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Callback processed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "received"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error processing callback",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Failed to process callback"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/complete-payment": {
+      "post": {
+        "summary": "Test payment completion",
+        "description": "Test endpoint to simulate payment completion for development and testing",
+        "operationId": "completeTestPayment",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orderNo"],
+                "properties": {
+                  "orderNo": {
+                    "type": "string",
+                    "description": "Order number to complete",
+                    "example": "1705312200000ABC123"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["SUCCESS", "FAILED", "PENDING", "CANCELLED", "AML_HOLD"],
+                    "default": "SUCCESS",
+                    "description": "Payment status to set",
+                    "example": "SUCCESS"
+                  },
+                  "failReason": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Failure reason if status is FAILED",
+                    "example": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment completed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Order 1705312200000ABC123 status updated to SUCCESS"
+                    },
+                    "order": {
+                      "type": "object",
+                      "properties": {
+                        "orderNo": {
+                          "type": "string",
+                          "example": "1705312200000ABC123"
+                        },
+                        "status": {
+                          "type": "string",
+                          "example": "SUCCESS"
+                        },
+                        "fromAmount": {
+                          "type": "number",
+                          "example": 1000
+                        },
+                        "feeAmount": {
+                          "type": "number",
+                          "example": 10
+                        },
+                        "totalPayAmount": {
+                          "type": "number",
+                          "example": 1010
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "orderNo is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Order not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Order 1705312200000ABC123 not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token in Authorization header"
+      },
+      "QueryToken": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "token",
+        "description": "JWT token as query parameter"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Validation error"
+          },
+          "message": {
+            "type": "string",
+            "example": "Invalid request parameters"
+          }
+        }
+      },
+      "UnauthorizedError": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:00.000Z"
+          },
+          "status": {
+            "type": "integer",
+            "example": 401
+          },
+          "error": {
+            "type": "string",
+            "example": "Unauthorized"
+          },
+          "message": {
+            "type": "string",
+            "example": "JWT token is missing or invalid"
+          },
+          "path": {
+            "type": "string",
+            "example": "/api/exchange-rate"
+          }
+        }
+      },
+      "DiscoveryResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "Success"
+          },
+          "beneficiaries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 123
+                },
+                "title": {
+                  "type": "string",
+                  "example": "John Smith"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "John Smith"
+                },
+                "currency": {
+                  "type": "string",
+                  "example": "CNY"
+                },
+                "icon": {
+                  "type": "string",
+                  "example": "👤"
+                }
+              }
+            }
+          },
+          "sendAmounts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "amount": {
+                  "type": "number",
+                  "example": 1000
+                }
+              }
+            }
+          },
+          "remToken": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "exchangeRate": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "fromAmount": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "example": "AED"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 1000
+                  }
+                }
+              },
+              "fromIconUrl": {
+                "type": "string",
+                "example": "🇦🇪"
+              },
+              "fromCountryName": {
+                "type": "string",
+                "example": "United Arab Emirates"
+              },
+              "rate": {
+                "type": "string",
+                "example": "1.85"
+              },
+              "toAmount": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "example": "CNY"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 1850
+                  }
+                }
+              },
+              "toIconUrl": {
+                "type": "string",
+                "example": "🇨🇳"
+              },
+              "toCountryName": {
+                "type": "string",
+                "example": "China"
+              },
+              "fee": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "example": "AED"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 10
+                  }
+                }
+              },
+              "feeItems": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "example": "Service Fee"
+                    },
+                    "feeAmount": {
+                      "type": "object",
+                      "properties": {
+                        "currency": {
+                          "type": "string",
+                          "example": "AED"
+                        },
+                        "amount": {
+                          "type": "number",
+                          "example": 10
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "orderAmount": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "example": "AED"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 1010
+                  }
+                }
+              },
+              "channelCode": {
+                "type": "string",
+                "example": "BANK_TRANSFER"
+              },
+              "transactionMode": {
+                "type": "string",
+                "example": "BANK_TRANSFER"
+              }
+            }
+          },
+          "description": {
+            "type": "string",
+            "example": "Please select a beneficiary and amount to proceed with the transfer."
+          },
+          "priceTitle": {
+            "type": "string",
+            "example": "Transfer Details"
+          },
+          "callBackProviders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "voice"
+                },
+                "url": {
+                  "type": "string",
+                  "example": "http://localhost:8080/voice/"
+                },
+                "token": {
+                  "type": "string",
+                  "example": "yourVoiceToken"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Voice-based confirmation callbacks"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TransferResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 200
+          },
+          "message": {
+            "type": "string",
+            "example": "Transfer initiated successfully"
+          },
+          "orderNo": {
+            "type": "string",
+            "example": "1705312200000ABC123"
+          },
+          "button": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "example": "Complete Payment"
+              },
+              "link": {
+                "type": "string",
+                "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=voice"
+              }
+            }
+          },
+          "paymentLink": {
+            "type": "string",
+            "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=voice"
+          },
+          "callBackProvider": {
+            "type": "string",
+            "example": "voice"
+          },
+          "callBackUrl": {
+            "type": "string",
+            "example": "http://localhost:8080/voice/"
+          },
+          "callBackToken": {
+            "type": "string",
+            "example": "yourVoiceToken"
+          },
+          "transactionDetails": {
+            "type": "object",
+            "properties": {
+              "beneficiary": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "example": 123
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "John Smith"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "John Smith"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "CNY"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "example": "👤"
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "CN"
+                  },
+                  "transferModes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["BANK_TRANSFER"]
+                  },
+                  "accountNumber": {
+                    "type": "string",
+                    "example": "1234567890"
+                  },
+                  "bankName": {
+                    "type": "string",
+                    "example": "Bank of China"
+                  }
+                }
+              },
+              "sendAmount": {
+                "type": "number",
+                "example": 1000
+              },
+              "fee": {
+                "type": "number",
+                "example": 10
+              },
+              "totalAmount": {
+                "type": "number",
+                "example": 1010
+              },
+              "receivedAmount": {
+                "type": "number",
+                "example": 1850
+              },
+              "exchangeRate": {
+                "type": "number",
+                "example": 1.85
+              },
+              "currency": {
+                "type": "string",
+                "example": "CNY"
+              }
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "orderNo": {
+            "type": "string",
+            "example": "1705312200000ABC123"
+          },
+          "fromAmount": {
+            "type": "string",
+            "example": "1000.00"
+          },
+          "feeAmount": {
+            "type": "string",
+            "example": "10.00"
+          },
+          "totalPayAmount": {
+            "type": "string",
+            "example": "1010.00"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["SUCCESS", "FAILED", "PENDING", "CANCELLED", "AML_HOLD"],
+            "example": "SUCCESS"
+          },
+          "dateDesc": {
+            "type": "string",
+            "example": "2024-01-15"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:00.000Z"
+          },
+          "failReason": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "amlHoldUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "orderDetailUrl": {
+            "type": "string",
+            "example": "https://order-detail.example.com/1705312200000ABC123"
+          }
+        }
+      },
+      "Beneficiary": {
+        "type": "object",
+        "properties": {
+          "beneficiaryId": {
+            "type": "integer",
+            "example": 123
+          },
+          "title": {
+            "type": "string",
+            "example": "John Smith"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Smith"
+          },
+          "currency": {
+            "type": "string",
+            "example": "CNY"
+          },
+          "icon": {
+            "type": "string",
+            "example": "👤"
+          },
+          "country": {
+            "type": "string",
+            "example": "CN"
+          },
+          "transferModes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["BANK_TRANSFER", "CASH_PICK_UP", "MOBILE_WALLET", "UPI"]
+            },
+            "example": ["BANK_TRANSFER"]
+          },
+          "accountNumber": {
+            "type": "string",
+            "example": "1234567890"
+          },
+          "bankName": {
+            "type": "string",
+            "example": "Bank of China"
+          },
+          "bankCode": {
+            "type": "string",
+            "example": "BOC"
+          },
+          "branchCode": {
+            "type": "string",
+            "example": "001"
+          },
+          "swiftCode": {
+            "type": "string",
+            "example": "BKCHCNBJ"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:00.000Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-01-15T10:30:00.000Z"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "JWT token generation and management"
+    },
+    {
+      "name": "Exchange Rates",
+      "description": "Currency exchange rate queries"
+    },
+    {
+      "name": "Transfers",
+      "description": "Money transfer operations"
+    },
+    {
+      "name": "Orders",
+      "description": "Remittance order management and tracking"
+    },
+    {
+      "name": "Beneficiaries",
+      "description": "Beneficiary management"
+    },
+    {
+      "name": "Callbacks",
+      "description": "Webhook endpoints for payment status updates"
+    },
+    {
+      "name": "Testing",
+      "description": "Development and testing utilities"
+    }
+  ]
+}
