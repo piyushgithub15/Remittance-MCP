@@ -10,6 +10,8 @@
     "test": "node --test test/*.test.js",
     "test-server": "node test-normal-server.js",
     "test-transaction-status": "node test-transaction-status.js",
+    "test-ai-agent": "node test-ai-agent.js",
+    "test-voice": "node test-voice-workflow.js",
     "validate-openapi": "node validate-openapi.js"
   },
   "keywords": [
@@ -31,6 +33,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.3.0",
     "mongoose": "^8.0.3",
+    "nodemailer": "^6.9.7",
+    "twilio": "^4.19.0",
     "uuid": "^9.0.1",
     "zod": "^3.25.76"
   },

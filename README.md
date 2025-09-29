@@ -9,6 +9,9 @@ A Model Context Protocol (MCP) server implementation for international remittanc
 - **Order History**: Query and track remittance transaction history
 - **JWT Authentication**: Secure API access with JWT tokens
 - **RESTful API**: HTTP endpoints for integration
+- **Voice Calling**: Twilio integration for voice calls with AI responses
+- **AI Customer Service**: Intelligent Aya persona for customer support
+- **Email Workflows**: Automated email notifications and document collection
 - **MCP Protocol**: Full MCP server implementation for AI assistants
 
 ## Quick Start
