@@ -59,6 +59,18 @@ const beneficiarySchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  idCard: {
+    // Emirates ID or EID
+    idNumber: {
+      type: String,
+      required: true,
+      length: 15
+    },
+    expiryDate: {
+      type: Date,
+      required: true
+    }
+  },
   isActive: {
     type: Boolean,
     default: true
