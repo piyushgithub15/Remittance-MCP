@@ -22,7 +22,6 @@ import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { verifyIdentity } from './tools/verifyIdentity.js';
 import { getTransactionTimeframe } from './tools/transactionTimeframe.js';
 import { handleDelayedTransaction } from './tools/delayedTransactionHandler.js';
-import { checkTransactionStatus } from './tools/transactionStatusChecker.js';
 import { sendCustomerEmail } from './tools/emailService.js';
 import { handleCompletedTransactionDispute } from './tools/completedTransactionDispute.js';
 import { generateJWTToken } from './utils/jwt.js';
@@ -39,7 +38,6 @@ import {
 import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionTimeframeSchema } from './tools/transactionTimeframe.js';
 import { delayedTransactionHandlerSchema } from './tools/delayedTransactionHandler.js';
-import { transactionStatusCheckerSchema } from './tools/transactionStatusChecker.js';
 import { emailServiceSchema } from './tools/emailService.js';
 import { completedTransactionDisputeSchema } from './tools/completedTransactionDispute.js';
 
@@ -201,7 +199,6 @@ class RemittanceMCPServer {
                   description: 'Maximum number of orders to return (1-50, default: 10)',
                 },
               },
-              required: ['country'],
             },
           },
           {
@@ -292,33 +289,6 @@ class RemittanceMCPServer {
                   type: 'string',
                   pattern: '^\\d{4}$',
                   description: 'Last 4 digits of EID for verification (optional)',
-                },
-              },
-              required: ['orderNo'],
-            },
-          },
-          {
-            name: 'checkTransactionStatus',
-            description: 'Check actual transaction status from backend/database and update if needed',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                orderNo: {
-                  type: 'string',
-                  description: 'Order number to check',
-                },
-                updateStatus: {
-                  type: 'boolean',
-                  description: 'Whether to update the status in database',
-                },
-                newStatus: {
-                  type: 'string',
-                  enum: ['SUCCESS', 'FAILED', 'PENDING', 'CANCELLED', 'AML_HOLD'],
-                  description: 'New status to set if updating',
-                },
-                failReason: {
-                  type: 'string',
-                  description: 'Failure reason if status is FAILED',
                 },
               },
               required: ['orderNo'],
@@ -455,14 +425,6 @@ class RemittanceMCPServer {
             }
             
             return await handleDelayedTransaction(delayedValidation.data);
-          case 'checkTransactionStatus':
-            // Validate using Zod schema
-            const statusValidation = validateWithZod(transactionStatusCheckerSchema, args);
-            if (!statusValidation.success) {
-              return createErrorResponse(statusValidation.error);
-            }
-            
-            return await checkTransactionStatus(statusValidation.data);
           case 'sendCustomerEmail':
             // Validate using Zod schema
             const emailValidation = validateWithZod(emailServiceSchema, args);
@@ -653,17 +615,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
           });
         }
         result = await handleDelayedTransaction(delayedValidation.data);
-        break;
-      case 'checkTransactionStatus':
-        // Validate using Zod schema
-        const statusValidation = validateWithZod(transactionStatusCheckerSchema, params);
-        if (!statusValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${statusValidation.error}`
-          });
-        }
-        result = await checkTransactionStatus(statusValidation.data);
         break;
       case 'sendCustomerEmail':
         // Validate using Zod schema

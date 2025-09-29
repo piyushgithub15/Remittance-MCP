@@ -85,13 +85,7 @@ This prompt guides the AI agent on how to handle different remittance scenarios 
 }
 ```
 
-**Step 2**: Check actual backend status using `checkTransactionStatus`
-```json
-{
-  "orderNo": "ORDER_NUMBER",
-  "updateStatus": false
-}
-```
+**Step 2**: Check actual backend status (handled internally by the dispute tool)
 
 **Step 3**: Handle based on backend status using `handleCompletedTransactionDispute`
 ```json
@@ -159,15 +153,7 @@ This prompt guides the AI agent on how to handle different remittance scenarios 
 
 ### When updating transaction status:
 
-**Use Tool**: `checkTransactionStatus`
-```json
-{
-  "orderNo": "ORDER_NUMBER",
-  "updateStatus": true,
-  "newStatus": "SUCCESS",
-  "failReason": "Optional failure reason"
-}
-```
+**Note**: Status checking is now handled internally by the dispute resolution tool
 
 **Response Guidelines**:
 - Confirm status update
@@ -211,7 +197,7 @@ This prompt guides the AI agent on how to handle different remittance scenarios 
 1. **verifyIdentity** - First for any sensitive operations
 2. **getTransactionTimeframe** - For timing inquiries
 3. **handleDelayedTransaction** - For delay complaints
-4. **checkTransactionStatus** - For status verification
+4. **Status verification** - Handled internally by dispute resolution tool
 5. **handleCompletedTransactionDispute** - For dispute resolution
 6. **sendCustomerEmail** - For customer notifications
 

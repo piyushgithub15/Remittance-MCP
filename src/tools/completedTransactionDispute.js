@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { verifyIdentity } from './verifyIdentity.js';
-import { checkTransactionStatus, updateTransactionStatus, checkDisputeEligibility } from './transactionStatusChecker.js';
+import { updateTransactionStatus, checkDisputeEligibility } from './transactionStatusChecker.js';
+import RemittanceOrder from '../models/RemittanceOrder.js';
 import { sendCustomerEmail } from './emailService.js';
 
 // Validation schema for completed transaction dispute handling
@@ -14,6 +15,131 @@ export const completedTransactionDisputeSchema = z.object({
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
+
+/**
+ * Internal function to check transaction status from backend
+ * @param {string} orderNo - Order number
+ * @returns {Object} Status data
+ */
+async function checkTransactionStatusInternal(orderNo) {
+  try {
+    // Find the order
+    const order = await RemittanceOrder.findOne({ 
+      orderNo,
+      userId: DEFAULT_USER_ID 
+    });
+
+    if (!order) {
+      return {
+        appStatus: 'NOT_FOUND',
+        backendStatus: 'NOT_FOUND',
+        hasDiscrepancy: false,
+        transactionDetails: null
+      };
+    }
+
+    // Simulate backend status check (in real implementation, this would call external API)
+    const backendStatus = await simulateBackendStatusCheck(orderNo);
+    
+    // Determine if there's a discrepancy
+    const hasDiscrepancy = order.status !== backendStatus.status;
+    
+    return {
+      orderNo: order.orderNo,
+      appStatus: order.status,
+      backendStatus: backendStatus.status,
+      hasDiscrepancy: hasDiscrepancy,
+      discrepancyDetails: hasDiscrepancy ? {
+        appShows: order.status,
+        backendShows: backendStatus.status,
+        explanation: getDiscrepancyExplanation(order.status, backendStatus.status)
+      } : null,
+      transactionDetails: {
+        fromAmount: order.fromAmount.toString(),
+        toAmount: order.toAmount ? order.toAmount.toString() : null,
+        transferMode: order.transferMode,
+        country: order.country,
+        currency: order.currency,
+        transactionDate: order.date.toISOString(),
+        beneficiaryName: order.beneficiaryName || 'N/A'
+      },
+      backendDetails: backendStatus.details
+    };
+
+  } catch (error) {
+    console.error('Error checking transaction status:', error);
+    return {
+      appStatus: 'ERROR',
+      backendStatus: 'ERROR',
+      hasDiscrepancy: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Simulate backend status check (in real implementation, this would call external API)
+ * @param {string} orderNo - Order number
+ * @returns {Object} Backend status information
+ */
+async function simulateBackendStatusCheck(orderNo) {
+  // Simulate different scenarios based on order number patterns
+  const scenarios = [
+    {
+      status: 'SUCCESS',
+      details: {
+        actualStatus: 'COMPLETED',
+        completionTime: new Date().toISOString(),
+        referenceNumber: `REF-${orderNo}-${Date.now()}`,
+        bankResponse: 'Transaction completed successfully',
+        beneficiaryReceived: true
+      }
+    },
+    {
+      status: 'FAILED',
+      details: {
+        actualStatus: 'FAILED',
+        failureTime: new Date().toISOString(),
+        errorCode: 'BANK_ERROR_001',
+        errorMessage: 'Insufficient funds in beneficiary account',
+        beneficiaryReceived: false
+      }
+    },
+    {
+      status: 'PENDING',
+      details: {
+        actualStatus: 'PROCESSING',
+        lastUpdate: new Date().toISOString(),
+        estimatedCompletion: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        bankResponse: 'Transaction is being processed by beneficiary bank',
+        beneficiaryReceived: false
+      }
+    }
+  ];
+
+  // Use order number to determine scenario (for testing)
+  const scenarioIndex = orderNo.length % scenarios.length;
+  return scenarios[scenarioIndex];
+}
+
+/**
+ * Get explanation for status discrepancy
+ * @param {string} appStatus - Status shown in app
+ * @param {string} backendStatus - Actual backend status
+ * @returns {string} Explanation of the discrepancy
+ */
+function getDiscrepancyExplanation(appStatus, backendStatus) {
+  const explanations = {
+    'SUCCESS-PENDING': 'Transaction appears completed in app but is still processing in backend',
+    'SUCCESS-FAILED': 'Transaction shows as successful in app but actually failed in backend',
+    'PENDING-SUCCESS': 'Transaction shows as pending in app but has completed in backend',
+    'PENDING-FAILED': 'Transaction shows as pending in app but has failed in backend',
+    'FAILED-SUCCESS': 'Transaction shows as failed in app but has actually completed in backend'
+  };
+
+  const key = `${appStatus}-${backendStatus}`;
+  return explanations[key] || 'Status discrepancy detected between app and backend systems';
+}
 
 // Hardcoded messages for different scenarios
 const DISPUTE_MESSAGES = {
@@ -97,16 +223,7 @@ export async function handleCompletedTransactionDispute(params) {
 
     // Step 2: Check actual transaction status from backend
     console.log('🔍 Checking actual transaction status...');
-    const statusResult = await checkTransactionStatus({
-      orderNo,
-      updateStatus: false
-    });
-
-    if (statusResult.isError) {
-      return statusResult;
-    }
-
-    const statusData = JSON.parse(statusResult.content[0].text).data;
+    const statusData = await checkTransactionStatusInternal(orderNo);
     console.log('📊 Backend status:', statusData.backendStatus);
 
     // Step 3: Handle different scenarios based on backend status
