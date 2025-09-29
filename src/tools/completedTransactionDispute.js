@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { verifyIdentity } from './verifyIdentity.js';
-import { updateTransactionStatus, checkDisputeEligibility } from './transactionStatusChecker.js';
+// Status checking functionality integrated directly into this file
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { sendCustomerEmail } from './emailService.js';
 
