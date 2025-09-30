@@ -4,11 +4,8 @@ import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
 
 // Validation schema for transaction query parameters
 export const transactionQuerySchema = z.object({
-  // Query mode - either 'list' for order history or 'timeframe' for specific order timing
-  mode: z.enum(['list', 'timeframe']).default('list'),
-  
-  // For timeframe mode - specific order number
-  orderNo: z.string().min(1, 'orderNo is required for timeframe mode').optional(),
+  // For specific order timeframe check
+  orderNo: z.string().min(1, 'orderNo must be provided for specific order check').optional(),
   
   // For list mode - filtering options
   transferMode: z.enum(TRANSFER_MODE_VALUES).optional(),
@@ -17,7 +14,7 @@ export const transactionQuerySchema = z.object({
   orderDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'orderDate must be in YYYY-MM-DD format').optional(),
   orderCount: z.number().int().min(1).max(50).default(10),
   
-  // For timeframe mode - delay information
+  // For delay information
   includeDelayInfo: z.boolean().optional().default(false)
 });
 
@@ -30,14 +27,13 @@ const DELAY_THRESHOLD_MINUTES = 10;
 /**
  * Query transaction history or check specific transaction timeframe
  * @param {Object} params - Parameters object
- * @param {string} params.mode - Query mode: 'list' for order history, 'timeframe' for specific order timing
- * @param {string} [params.orderNo] - Order number (required for timeframe mode)
- * @param {string} [params.transferMode] - Filter by transfer mode (for list mode)
- * @param {string} [params.country] - Filter by destination country (for list mode)
- * @param {string} [params.currency] - Filter by destination currency (for list mode)
- * @param {string} [params.orderDate] - Filter by order creation date (for list mode)
- * @param {number} [params.orderCount] - Maximum number of orders to return (for list mode)
- * @param {boolean} [params.includeDelayInfo] - Whether to include delay information (for timeframe mode)
+ * @param {string} [params.orderNo] - Order number for specific order check
+ * @param {string} [params.transferMode] - Filter by transfer mode
+ * @param {string} [params.country] - Filter by destination country
+ * @param {string} [params.currency] - Filter by destination currency
+ * @param {string} [params.orderDate] - Filter by order creation date
+ * @param {number} [params.orderCount] - Maximum number of orders to return
+ * @param {boolean} [params.includeDelayInfo] - Whether to include delay information
  * @returns {Object} ToolResult with transaction information
  */
 export async function transactionQuery(params) {
@@ -56,12 +52,14 @@ export async function transactionQuery(params) {
       };
     }
 
-    const { mode, orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo } = validation.data;
+    const { orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo } = validation.data;
 
-    if (mode === 'timeframe') {
-      return await handleTimeframeQuery(orderNo, includeDelayInfo);
+    // If orderNo is provided, check specific order timeframe
+    if (orderNo) {
+      return await handleSpecificOrderQuery(orderNo, includeDelayInfo);
     } else {
-      return await handleListQuery(transferMode, country, currency, orderDate, orderCount);
+      // Otherwise, return list of orders with timeframe info
+      return await handleOrderListQuery(transferMode, country, currency, orderDate, orderCount);
     }
 
   } catch (error) {
@@ -79,12 +77,12 @@ export async function transactionQuery(params) {
 }
 
 /**
- * Handle timeframe query for specific order
+ * Handle specific order query with timeframe information
  * @param {string} orderNo - Order number to check
  * @param {boolean} includeDelayInfo - Whether to include delay information
  * @returns {Object} ToolResult with timeframe information
  */
-async function handleTimeframeQuery(orderNo, includeDelayInfo) {
+async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
   // Find the order
   const order = await RemittanceOrder.findOne({ 
     orderNo,
@@ -203,7 +201,7 @@ async function handleTimeframeQuery(orderNo, includeDelayInfo) {
  * @param {number} orderCount - Maximum number of orders to return
  * @returns {Object} ToolResult with order list
  */
-async function handleListQuery(transferMode, country, currency, orderDate, orderCount) {
+async function handleOrderListQuery(transferMode, country, currency, orderDate, orderCount) {
   // Build query filters
   const query = { userId: DEFAULT_USER_ID };
   

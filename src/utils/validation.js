@@ -4,6 +4,7 @@ import { z } from 'zod';
 export { transferMoneySchema } from '../tools/transferMoney.js';
 export { queryExchangeRateSchema } from '../tools/queryExchangeRate.js';
 export { getBeneficiariesSchema } from '../tools/getBeneficiaries.js';
+export { transactionQuerySchema } from '../tools/transactionQuery.js';
 
 // Validation helper function
 export function validateWithZod(schema, data) {

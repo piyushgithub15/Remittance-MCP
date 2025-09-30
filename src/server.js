@@ -234,46 +234,41 @@ class RemittanceMCPServer {
           },
           {
             name: 'transactionQuery',
-            description: 'Query transaction history or check specific transaction timeframe and delays',
+            description: 'Query transaction history or check specific transaction timeframe and delays. If orderNo is provided, returns specific order details. Otherwise returns filtered list of orders.',
             inputSchema: {
               type: 'object',
               properties: {
-                mode: {
-                  type: 'string',
-                  enum: ['list', 'timeframe'],
-                  description: 'Query mode: list for order history, timeframe for specific order timing',
-                },
                 orderNo: {
                   type: 'string',
-                  description: 'Order number (required for timeframe mode)',
+                  description: 'Order number for specific order check',
                 },
                 transferMode: {
                   type: 'string',
                   enum: ['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI'],
-                  description: 'Filter by transfer mode (for list mode)',
+                  description: 'Filter by transfer mode',
                 },
                 country: {
                   type: 'string',
-                  description: 'Filter by destination country (for list mode)',
+                  description: 'Filter by destination country (2-character ISO code)',
                 },
                 currency: {
                   type: 'string',
-                  description: 'Filter by destination currency (for list mode)',
+                  description: 'Filter by destination currency (3-character ISO code)',
                 },
                 orderDate: {
                   type: 'string',
                   format: 'date',
-                  description: 'Filter by order creation date (for list mode)',
+                  description: 'Filter by order creation date (YYYY-MM-DD)',
                 },
                 orderCount: {
                   type: 'integer',
                   minimum: 1,
                   maximum: 50,
-                  description: 'Maximum number of orders to return (for list mode)',
+                  description: 'Maximum number of orders to return',
                 },
                 includeDelayInfo: {
                   type: 'boolean',
-                  description: 'Whether to include delay information (for timeframe mode)',
+                  description: 'Include delay information',
                 },
               },
               required: [],
