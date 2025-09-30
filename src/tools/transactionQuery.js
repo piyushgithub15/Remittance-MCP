@@ -234,6 +234,37 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     .limit(orderCount)
     .select('orderNo fromAmount toAmount status dateDesc date failReason amlHoldUrl orderDetailUrl transferMode country currency');
 
+  // If orderCount is 1 and we have exactly one order, check if it's delayed
+  if (orderCount === 1 && orders.length === 1) {
+    const order = orders[0];
+    const transactionTime = new Date(order.date);
+    const currentTime = new Date();
+    const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
+    const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
+    
+    // If the single order is delayed and pending, return verification error
+    if (isDelayed && order.status === 'PENDING') {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Identity verification required for delayed transactions',
+              data: {
+                orderNo: order.orderNo,
+                isDelayed: true,
+                requiresVerification: true,
+                message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID.'
+              }
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+  }
+
   const orderList = orders.map(order => {
     // Calculate time elapsed for each order
     const transactionTime = new Date(order.date);
