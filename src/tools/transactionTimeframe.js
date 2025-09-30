@@ -69,7 +69,7 @@ export async function getTransactionTimeframe(params) {
     const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
     // If transaction is delayed, request verification first
-    if (isDelayed) {
+    if (isDelayed && order.status ==='PENDING') {
       return {
         content: [
           {
