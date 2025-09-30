@@ -21,9 +21,7 @@ import { remittanceOrderQuery } from './tools/remittanceOrderQuery.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { verifyIdentity } from './tools/verifyIdentity.js';
 import { getTransactionTimeframe } from './tools/transactionTimeframe.js';
-import { handleDelayedTransaction } from './tools/delayedTransactionHandler.js';
 import { sendCustomerEmail } from './tools/emailService.js';
-import { handleCompletedTransactionDispute } from './tools/completedTransactionDispute.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
@@ -37,9 +35,7 @@ import {
 } from './utils/validation.js';
 import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionTimeframeSchema } from './tools/transactionTimeframe.js';
-import { delayedTransactionHandlerSchema } from './tools/delayedTransactionHandler.js';
 import { emailServiceSchema } from './tools/emailService.js';
-import { completedTransactionDisputeSchema } from './tools/completedTransactionDispute.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -271,30 +267,6 @@ class RemittanceMCPServer {
             },
           },
           {
-            name: 'handleDelayedTransaction',
-            description: 'Handle delayed transaction scenarios with empathetic responses and escalation options',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                orderNo: {
-                  type: 'string',
-                  description: 'Order number to handle',
-                },
-                customerSatisfaction: {
-                  type: 'string',
-                  enum: ['satisfied', 'unsatisfied'],
-                  description: 'Customer satisfaction level',
-                },
-                lastFourDigits: {
-                  type: 'string',
-                  pattern: '^\\d{4}$',
-                  description: 'Last 4 digits of EID for verification (optional)',
-                },
-              },
-              required: ['orderNo'],
-            },
-          },
-          {
             name: 'sendCustomerEmail',
             description: 'Send email to customer with bank details submission link or status updates',
             inputSchema: {
@@ -324,39 +296,6 @@ class RemittanceMCPServer {
                 },
               },
               required: ['customerEmail', 'orderNo'],
-            },
-          },
-          {
-            name: 'handleCompletedTransactionDispute',
-            description: 'Handle disputes where transaction shows as completed but beneficiary has not received funds',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                orderNo: {
-                  type: 'string',
-                  description: 'Order number',
-                },
-                lastFourDigits: {
-                  type: 'string',
-                  pattern: '^\\d{4}$',
-                  description: 'Last 4 digits of Emirates ID',
-                },
-                customerEmail: {
-                  type: 'string',
-                  format: 'email',
-                  description: 'Customer email address (optional)',
-                },
-                customerName: {
-                  type: 'string',
-                  description: 'Customer name (optional)',
-                },
-                disputeType: {
-                  type: 'string',
-                  enum: ['beneficiary_not_received', 'wrong_amount', 'delayed_delivery'],
-                  description: 'Type of dispute',
-                },
-              },
-              required: ['orderNo', 'lastFourDigits'],
             },
           },
         ],
@@ -417,14 +356,6 @@ class RemittanceMCPServer {
             }
             
             return await getTransactionTimeframe(timeframeValidation.data);
-          case 'handleDelayedTransaction':
-            // Validate using Zod schema
-            const delayedValidation = validateWithZod(delayedTransactionHandlerSchema, args);
-            if (!delayedValidation.success) {
-              return createErrorResponse(delayedValidation.error);
-            }
-            
-            return await handleDelayedTransaction(delayedValidation.data);
           case 'sendCustomerEmail':
             // Validate using Zod schema
             const emailValidation = validateWithZod(emailServiceSchema, args);
@@ -433,14 +364,6 @@ class RemittanceMCPServer {
             }
             
             return await sendCustomerEmail(emailValidation.data);
-          case 'handleCompletedTransactionDispute':
-            // Validate using Zod schema
-            const disputeValidation = validateWithZod(completedTransactionDisputeSchema, args);
-            if (!disputeValidation.success) {
-              return createErrorResponse(disputeValidation.error);
-            }
-            
-            return await handleCompletedTransactionDispute(disputeValidation.data);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -605,17 +528,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         }
         result = await getTransactionTimeframe(timeframeValidation.data);
         break;
-      case 'handleDelayedTransaction':
-        // Validate using Zod schema
-        const delayedValidation = validateWithZod(delayedTransactionHandlerSchema, params);
-        if (!delayedValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${delayedValidation.error}`
-          });
-        }
-        result = await handleDelayedTransaction(delayedValidation.data);
-        break;
       case 'sendCustomerEmail':
         // Validate using Zod schema
         const emailValidation = validateWithZod(emailServiceSchema, params);
@@ -626,17 +538,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
           });
         }
         result = await sendCustomerEmail(emailValidation.data);
-        break;
-      case 'handleCompletedTransactionDispute':
-        // Validate using Zod schema
-        const disputeValidation = validateWithZod(completedTransactionDisputeSchema, params);
-        if (!disputeValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${disputeValidation.error}`
-          });
-        }
-        result = await handleCompletedTransactionDispute(disputeValidation.data);
         break;
       default:
         return res.status(400).json({
