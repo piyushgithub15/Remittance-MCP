@@ -17,10 +17,9 @@ dotenv.config();
 // Import tool implementations
 import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney } from './tools/transferMoney.js';
-import { remittanceOrderQuery } from './tools/remittanceOrderQuery.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { verifyIdentity } from './tools/verifyIdentity.js';
-import { getTransactionTimeframe } from './tools/transactionTimeframe.js';
+import { transactionQuery } from './tools/transactionQuery.js';
 import { sendCustomerEmail } from './tools/emailService.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
@@ -28,13 +27,12 @@ import { seedAllData } from './utils/seedData.js';
 import { 
   transferMoneySchema, 
   queryExchangeRateSchema, 
-  remittanceOrderQuerySchema, 
   getBeneficiariesSchema,
   validateWithZod,
   createErrorResponse 
 } from './utils/validation.js';
 import { verifyIdentitySchema } from './tools/verifyIdentity.js';
-import { transactionTimeframeSchema } from './tools/transactionTimeframe.js';
+import { transactionQuerySchema } from './tools/transactionQuery.js';
 import { emailServiceSchema } from './tools/emailService.js';
 
 const app = express();
@@ -166,38 +164,6 @@ class RemittanceMCPServer {
             },
           },
           {
-            name: 'remittanceOrderQuery',
-            description: 'Query and retrieve remittance transaction history and status for a user',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                transferMode: {
-                  type: 'string',
-                  description: 'Filter by transfer mode (e.g., BANK_TRANSFER, CASH_PICK_UP, MOBILE_WALLET, UPI)',
-                },
-                country: {
-                  type: 'string',
-                  description: 'Filter by destination country (ISO 3166 code, e.g., CN for China, IN for India)',
-                },
-                currency: {
-                  type: 'string',
-                  description: 'Filter by destination currency (ISO 4217 code, e.g., CNY, INR, USD)',
-                },
-                orderDate: {
-                  type: 'string',
-                  format: 'date',
-                  description: 'Filter by order creation date (format: YYYY-MM-DD, e.g., 2024-01-15)',
-                },
-                orderCount: {
-                  type: 'integer',
-                  minimum: 1,
-                  maximum: 50,
-                  description: 'Maximum number of orders to return (1-50, default: 10)',
-                },
-              },
-            },
-          },
-          {
             name: 'getBeneficiaries',
             description: 'Retrieve user\'s saved beneficiaries with optional filtering',
             inputSchema: {
@@ -267,6 +233,53 @@ class RemittanceMCPServer {
             },
           },
           {
+            name: 'transactionQuery',
+            description: 'Query transaction history or check specific transaction timeframe and delays',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                mode: {
+                  type: 'string',
+                  enum: ['list', 'timeframe'],
+                  description: 'Query mode: list for order history, timeframe for specific order timing',
+                },
+                orderNo: {
+                  type: 'string',
+                  description: 'Order number (required for timeframe mode)',
+                },
+                transferMode: {
+                  type: 'string',
+                  enum: ['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI'],
+                  description: 'Filter by transfer mode (for list mode)',
+                },
+                country: {
+                  type: 'string',
+                  description: 'Filter by destination country (for list mode)',
+                },
+                currency: {
+                  type: 'string',
+                  description: 'Filter by destination currency (for list mode)',
+                },
+                orderDate: {
+                  type: 'string',
+                  format: 'date',
+                  description: 'Filter by order creation date (for list mode)',
+                },
+                orderCount: {
+                  type: 'integer',
+                  minimum: 1,
+                  maximum: 50,
+                  description: 'Maximum number of orders to return (for list mode)',
+                },
+                includeDelayInfo: {
+                  type: 'boolean',
+                  description: 'Whether to include delay information (for timeframe mode)',
+                },
+              },
+              required: [],
+            },
+          },
+          {
             name: 'sendCustomerEmail',
             description: 'Send email to customer with bank details submission link or status updates',
             inputSchema: {
@@ -324,14 +337,6 @@ class RemittanceMCPServer {
             }
             
             return await transferMoney(transferValidation.data);
-          case 'remittanceOrderQuery':
-            // Validate using Zod schema
-            const orderValidation = validateWithZod(remittanceOrderQuerySchema, args);
-            if (!orderValidation.success) {
-              return createErrorResponse(orderValidation.error);
-            }
-            
-            return await remittanceOrderQuery(orderValidation.data);
           case 'getBeneficiaries':
             // Validate using Zod schema
             const beneficiariesValidation = validateWithZod(getBeneficiariesSchema, args);
@@ -348,14 +353,14 @@ class RemittanceMCPServer {
             }
             
             return await verifyIdentity(identityValidation.data);
-          case 'getTransactionTimeframe':
+          case 'transactionQuery':
             // Validate using Zod schema
-            const timeframeValidation = validateWithZod(transactionTimeframeSchema, args);
-            if (!timeframeValidation.success) {
-              return createErrorResponse(timeframeValidation.error);
+            const transactionValidation = validateWithZod(transactionQuerySchema, args);
+            if (!transactionValidation.success) {
+              return createErrorResponse(transactionValidation.error);
             }
             
-            return await getTransactionTimeframe(timeframeValidation.data);
+            return await transactionQuery(transactionValidation.data);
           case 'sendCustomerEmail':
             // Validate using Zod schema
             const emailValidation = validateWithZod(emailServiceSchema, args);
@@ -484,17 +489,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         }
         result = await transferMoney(transferValidation.data);
         break;
-      case 'remittanceOrderQuery':
-        // Validate using Zod schema
-        const orderValidation = validateWithZod(remittanceOrderQuerySchema, params);
-        if (!orderValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${orderValidation.error}`
-          });
-        }
-        result = await remittanceOrderQuery(orderValidation.data);
-        break;
       case 'getBeneficiaries':
         // Validate using Zod schema
         const beneficiariesValidation = validateWithZod(getBeneficiariesSchema, params);
@@ -517,16 +511,16 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         }
         result = await verifyIdentity(identityValidation.data);
         break;
-      case 'getTransactionTimeframe':
+      case 'transactionQuery':
         // Validate using Zod schema
-        const timeframeValidation = validateWithZod(transactionTimeframeSchema, params);
-        if (!timeframeValidation.success) {
+        const transactionValidation = validateWithZod(transactionQuerySchema, params);
+        if (!transactionValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${timeframeValidation.error}`
+            content: `Validation error: ${transactionValidation.error}`
           });
         }
-        result = await getTransactionTimeframe(timeframeValidation.data);
+        result = await transactionQuery(transactionValidation.data);
         break;
       case 'sendCustomerEmail':
         // Validate using Zod schema
