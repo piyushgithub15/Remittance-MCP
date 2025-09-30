@@ -68,6 +68,28 @@ export async function getTransactionTimeframe(params) {
     // Check if transaction is delayed
     const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
+    // If transaction is delayed, request verification first
+    if (isDelayed) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Identity verification required for delayed transactions',
+              data: {
+                orderNo: order.orderNo,
+                isDelayed: true,
+                requiresVerification: true,
+                message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID.'
+              }
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+
     // Calculate expected arrival time based on transfer mode and country
     const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
 

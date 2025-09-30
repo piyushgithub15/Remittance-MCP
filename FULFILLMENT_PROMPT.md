@@ -14,7 +14,7 @@ This prompt guides the AI agent on how to handle different remittance scenarios 
 
 ### When customer asks about transaction timing or delays:
 
-**Use Tool**: `getTransactionTimeframe`
+**Step 1**: Use `getTransactionTimeframe` to check delay status
 ```json
 {
   "orderNo": "ORDER_NUMBER",
@@ -22,12 +22,30 @@ This prompt guides the AI agent on how to handle different remittance scenarios 
 }
 ```
 
+**Step 2**: If delayed, use `verifyIdentity` for verification
+```json
+{
+  "lastFourDigits": "1234"
+}
+```
+
+**Step 3**: After verification, use `getTransactionTimeframe` again for detailed info
+
 **Response Guidelines**:
 - If `isDelayed: false`: "Your transaction is within the expected timeframe. It should arrive by [expectedArrivalTime]."
-- If `isDelayed: true`: Use empathetic delay messages and explain the reasons
+- If `isDelayed: true` and no verification: Request identity verification first
+- If `isDelayed: true` and verified: Use empathetic delay messages and explain the reasons
 - Always reference the timeframe message provided by the tool
 
-**Sample Response**:
+**Sample Responses**:
+
+**For Non-Delayed Transactions**:
+> "Your transaction is within the expected timeframe. It should arrive by [expectedArrivalTime]. You can check the app for real-time updates."
+
+**For Delayed Transactions (No Verification)**:
+> "Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID."
+
+**For Delayed Transactions (After Verification)**:
 > "I can see your transaction was made [X] minutes ago. [Use the timeframeMessage from the tool response]. The delay is due to the beneficiary bank's processing schedule, which unfortunately is outside our control."
 
 ## Scenario 2: Delayed Transactions
