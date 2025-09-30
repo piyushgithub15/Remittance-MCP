@@ -3,7 +3,6 @@ import { z } from 'zod';
 // Import schemas from tool files
 export { transferMoneySchema } from '../tools/transferMoney.js';
 export { queryExchangeRateSchema } from '../tools/queryExchangeRate.js';
-export { remittanceOrderQuerySchema } from '../tools/remittanceOrderQuery.js';
 export { getBeneficiariesSchema } from '../tools/getBeneficiaries.js';
 
 // Validation helper function

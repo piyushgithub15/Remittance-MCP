@@ -10,7 +10,6 @@ dotenv.config();
 // Import tool implementations
 import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney, updateOrderStatus } from './tools/transferMoney.js';
-import { remittanceOrderQuery } from './tools/remittanceOrderQuery.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
@@ -18,7 +17,6 @@ import { seedAllData } from './utils/seedData.js';
 import { 
   transferMoneySchema, 
   queryExchangeRateSchema, 
-  remittanceOrderQuerySchema, 
   getBeneficiariesSchema,
   validateWithZod,
   createErrorResponse 
@@ -171,40 +169,7 @@ app.post('/api/transfer', authenticateToken, async (req, res) => {
 });
 
 // Remittance Order Query API
-app.post('/api/orders', authenticateToken, async (req, res) => {
-  try {
-    const validation = validateWithZod(remittanceOrderQuerySchema, req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Validation error',
-        message: validation.error
-      });
-    }
-    
-    const result = await remittanceOrderQuery(validation.data);
-    
-    if (result.isError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Order query failed',
-        message: result.content[0].text
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: JSON.parse(result.content[0].text)
-    });
-  } catch (error) {
-    console.error('Error in order query API:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error',
-      message: error.message
-    });
-  }
-});
+
 
 // Get Beneficiaries API
 app.post('/api/beneficiaries', authenticateToken, async (req, res) => {

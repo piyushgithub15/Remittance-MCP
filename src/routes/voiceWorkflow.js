@@ -131,76 +131,7 @@ router.post('/process-choice', (req, res) => {
 });
 
 // Process transaction inquiry
-router.post('/process-transaction', async (req, res) => {
-  const twiml = new twilio.twiml.VoiceResponse();
-  const referenceNumber = req.body.Digits;
-  
-  try {
-    // Import the transaction status function
-    const { remittanceOrderQuery } = await import('../tools/remittanceOrderQuery.js');
-    
-    // Query transaction status
-    const result = await remittanceOrderQuery({
-      orderNo: referenceNumber
-    });
-    
-    if (result.isError) {
-      twiml.say({
-        voice: 'alice',
-        language: 'en-US'
-      }, 'I\'m sorry, I couldn\'t find a transaction with that reference number. Please check the number and try again.');
-    } else {
-      const orderData = JSON.parse(result.content[0].text);
-      const order = orderData.orders[0];
-      
-      if (order) {
-        const statusMessage = getStatusMessage(order.status);
-        twiml.say({
-          voice: 'alice',
-          language: 'en-US'
-        }, `Your transaction status is ${statusMessage}. The amount is ${order.fromAmount} ${order.fromCurrency} to ${order.toAmount} ${order.toCurrency}. ${getStatusDetails(order.status)}`);
-      } else {
-        twiml.say({
-          voice: 'alice',
-          language: 'en-US'
-        }, 'I couldn\'t find any transaction with that reference number. Please verify the number and try again.');
-      }
-    }
-  } catch (error) {
-    console.error('Error processing transaction inquiry:', error);
-    twiml.say({
-      voice: 'alice',
-      language: 'en-US'
-    }, 'I\'m sorry, there was an error processing your request. Please try again later.');
-  }
-  
-  // Ask if they need more help
-  twiml.say({
-    voice: 'alice',
-    language: 'en-US'
-  }, 'Is there anything else I can help you with?');
-  
-  const gather = twiml.gather({
-    input: 'speech',
-    action: '/api/voice/process-more-help',
-    method: 'POST',
-    speechTimeout: 3
-  });
-  
-  gather.say({
-    voice: 'alice',
-    language: 'en-US'
-  }, 'Please say yes or no.');
-  
-  twiml.say({
-    voice: 'alice',
-    language: 'en-US'
-  }, 'Thank you for calling Botim Remittance. Have a great day!');
-  twiml.hangup();
-  
-  res.type('text/xml');
-  res.send(twiml.toString());
-});
+
 
 // Process FAQ inquiry
 router.post('/process-faq', async (req, res) => {
