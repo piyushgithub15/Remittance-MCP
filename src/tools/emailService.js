@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+import { EMAIL_TYPE_VALUES } from '../constants/enums.js';
 
 // Validation schema for email sending
 export const emailServiceSchema = z.object({
   customerEmail: z.string().email('Invalid email address'),
   orderNo: z.string().min(1, 'orderNo is required'),
-  emailType: z.enum(['bank_details_submission', 'status_update', 'dispute_resolution']).default('bank_details_submission'),
+  emailType: z.enum(EMAIL_TYPE_VALUES).default('bank_details_submission'),
   customerName: z.string().optional(),
   additionalMessage: z.string().optional()
 });
@@ -290,8 +291,8 @@ export async function sendCustomerEmail(params) {
         emailType,
         submissionUrl,
         submissionId,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-        sentAt: new Date().toISOString()
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString('en-US', { timeZone: 'Asia/Dubai' }), // 7 days
+        sentAt: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })
       }
     };
 
@@ -354,7 +355,7 @@ async function simulateEmailSending(emailData) {
   return {
     emailId: `email_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     status: 'sent',
-    sentAt: new Date().toISOString()
+    sentAt: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })
   };
 }
 
@@ -379,7 +380,7 @@ export function generateSubmissionUrl(orderNo) {
   return {
     submissionId,
     submissionUrl: `${baseUrl}/dispute/submit/${submissionId}`,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
     orderNo
   };
 }

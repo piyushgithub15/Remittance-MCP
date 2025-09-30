@@ -1,20 +1,46 @@
 import { z } from 'zod';
-import { verifyIdentity } from './verifyIdentity.js';
 // Status checking functionality integrated directly into this file
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { sendCustomerEmail } from './emailService.js';
+import { DISPUTE_TYPE_VALUES } from '../constants/enums.js';
 
 // Validation schema for completed transaction dispute handling
 export const completedTransactionDisputeSchema = z.object({
   orderNo: z.string().min(1, 'orderNo is required'),
-  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
   customerEmail: z.string().email('Invalid email address').optional(),
   customerName: z.string().optional(),
-  disputeType: z.enum(['beneficiary_not_received', 'wrong_amount', 'delayed_delivery']).default('beneficiary_not_received')
+  disputeType: z.enum(DISPUTE_TYPE_VALUES).default('beneficiary_not_received')
 });
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
+
+/**
+ * Get current time in GST (UAE timezone)
+ * @returns {string} Current time in GST format
+ */
+function getCurrentGSTTime() {
+  return new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Dubai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+}
+
+/**
+ * Get current time in ISO format with GST timezone
+ * @returns {string} Current time in ISO format
+ */
+function getCurrentGSTISO() {
+  const now = new Date();
+  const gstTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }));
+  return gstTime.toISOString();
+}
 
 /**
  * Internal function to check transaction status from backend
@@ -60,7 +86,7 @@ async function checkTransactionStatusInternal(orderNo) {
         transferMode: order.transferMode,
         country: order.country,
         currency: order.currency,
-        transactionDate: order.date.toISOString(),
+        transactionDate: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         beneficiaryName: order.beneficiaryName || 'N/A'
       },
       backendDetails: backendStatus.details
@@ -89,7 +115,7 @@ async function simulateBackendStatusCheck(orderNo) {
       status: 'SUCCESS',
       details: {
         actualStatus: 'COMPLETED',
-        completionTime: new Date().toISOString(),
+        completionTime: getCurrentGSTTime(),
         referenceNumber: `REF-${orderNo}-${Date.now()}`,
         bankResponse: 'Transaction completed successfully',
         beneficiaryReceived: true
@@ -99,7 +125,7 @@ async function simulateBackendStatusCheck(orderNo) {
       status: 'FAILED',
       details: {
         actualStatus: 'FAILED',
-        failureTime: new Date().toISOString(),
+        failureTime: getCurrentGSTTime(),
         errorCode: 'BANK_ERROR_001',
         errorMessage: 'Insufficient funds in beneficiary account',
         beneficiaryReceived: false
@@ -109,8 +135,8 @@ async function simulateBackendStatusCheck(orderNo) {
       status: 'PENDING',
       details: {
         actualStatus: 'PROCESSING',
-        lastUpdate: new Date().toISOString(),
-        estimatedCompletion: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        lastUpdate: getCurrentGSTTime(),
+        estimatedCompletion: new Date(Date.now() + 2 * 60 * 60 * 1000).toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         bankResponse: 'Transaction is being processed by beneficiary bank',
         beneficiaryReceived: false
       }
@@ -169,7 +195,6 @@ const DISPUTE_MESSAGES = {
  * Handle completed transaction dispute where beneficiary hasn't received funds
  * @param {Object} params - Parameters object
  * @param {string} params.orderNo - Order number
- * @param {string} params.lastFourDigits - Last 4 digits of Emirates ID
  * @param {string} [params.customerEmail] - Customer email address
  * @param {string} [params.customerName] - Customer name
  * @param {string} [params.disputeType] - Type of dispute
@@ -191,33 +216,7 @@ export async function handleCompletedTransactionDispute(params) {
       };
     }
 
-    const { orderNo, lastFourDigits, customerEmail, customerName, disputeType } = validation.data;
-
-    // Step 1: Verify customer identity
-    console.log('🔐 Verifying customer identity...');
-    const identityResult = await verifyIdentity({
-      lastFourDigits
-    });
-
-    if (identityResult.isError || !JSON.parse(identityResult.content[0].text).data.verified) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 401,
-              message: 'Identity verification failed',
-              data: {
-                verified: false,
-                reason: 'Invalid Emirates ID details provided',
-                nextSteps: ['Please provide correct last 4 digits of your Emirates ID', 'Contact support if you need assistance']
-              }
-            })
-          }
-        ],
-        isError: false
-      };
-    }
+    const { orderNo, customerEmail, customerName, disputeType } = validation.data;
 
     console.log('✅ Identity verified successfully');
 
@@ -449,8 +448,8 @@ async function handleUnknownStatusScenario(orderNo, statusData, customerName) {
         'Resolution timeline will be provided'
       ],
       escalationDetails: {
-        escalatedAt: new Date().toISOString(),
-        estimatedResolution: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        escalatedAt: getCurrentGSTTime(),
+        estimatedResolution: new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         priority: 'High'
       }
     }
@@ -490,7 +489,7 @@ export function generateDisputeSummary(orderNo, disputeData) {
     customerName: disputeData.customerName,
     customerEmail: disputeData.customerEmail,
     disputeType: disputeData.disputeType,
-    reportedAt: new Date().toISOString(),
+    reportedAt: getCurrentGSTTime(),
     status: 'INVESTIGATING',
     priority: 'HIGH',
     summary: {

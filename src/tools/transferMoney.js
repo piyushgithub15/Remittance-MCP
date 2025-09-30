@@ -4,6 +4,7 @@ import Beneficiary from '../models/Beneficiary.js';
 import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
 import RemittanceOrder from '../models/RemittanceOrder.js';
+import { CALLBACK_PROVIDER_VALUES } from '../constants/enums.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -13,7 +14,7 @@ export const transferMoneySchema = z.object({
   beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string').optional(),
   beneficiaryName: z.string().optional(),
   sendAmount: z.number().positive('sendAmount must be a positive number').optional(),
-  callBackProvider: z.enum(['voice', 'text']).optional()
+  callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional()
 });
 
 // Fee structure
@@ -310,7 +311,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
       feeAmount: fee,
       totalPayAmount: totalAmount,
       status: 'PENDING', // Initial status
-      dateDesc: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      dateDesc: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }).split(',')[0], // YYYY-MM-DD format
       date: new Date(),
       failReason: null,
       amlHoldUrl: null,

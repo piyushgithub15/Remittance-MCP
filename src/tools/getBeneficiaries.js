@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
+import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
 
 // Validation schema for getBeneficiaries parameters
 export const getBeneficiariesSchema = z.object({
   country: z.string().length(2, 'country must be a 2-character ISO 3166 country code').optional(),
   currency: z.string().length(3, 'currency must be a 3-character ISO 4217 currency code').optional(),
-  transferMode: z.enum(['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI']).optional(),
+  transferMode: z.enum(TRANSFER_MODE_VALUES).optional(),
   isActive: z.boolean().optional().default(true),
   limit: z.number().int().min(1).max(100).default(50)
 });

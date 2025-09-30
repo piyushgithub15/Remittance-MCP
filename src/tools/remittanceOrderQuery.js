@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
+import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
 
 // Validation schema for remittanceOrderQuery parameters
 export const remittanceOrderQuerySchema = z.object({
-  transferMode: z.enum(['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI']).optional(),
+  transferMode: z.enum(TRANSFER_MODE_VALUES).optional(),
   country: z.string().length(2, 'country must be a 2-character ISO 3166 country code').optional(),
   currency: z.string().length(3, 'currency must be a 3-character ISO 4217 currency code').optional(),
   orderDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'orderDate must be in YYYY-MM-DD format').optional(),
@@ -94,7 +95,7 @@ export async function remittanceOrderQuery(params) {
         totalPayAmount: order.totalPayAmount.toString(),
         status: order.status,
         dateDesc: order.dateDesc,
-        date: order.date.toISOString(),
+        date: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         failReason: order.failReason,
         amlHoldUrl: order.amlHoldUrl,
         orderDetailUrl: order.orderDetailUrl

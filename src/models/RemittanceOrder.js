@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import { 
+  TRANSACTION_STATUS_VALUES, 
+  TRANSFER_MODE_VALUES, 
+  CALLBACK_PROVIDER_VALUES, 
+  UPDATE_SOURCE_VALUES, 
+  DELIVERY_STATUS_VALUES, 
+  PAYMENT_METHOD_VALUES 
+} from '../constants/enums.js';
 
 const remittanceOrderSchema = new mongoose.Schema({
   orderNo: {
@@ -34,7 +42,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'AML_HOLD'],
+    enum: TRANSACTION_STATUS_VALUES,
     default: 'PENDING',
     index: true
   },
@@ -61,7 +69,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   },
   transferMode: {
     type: String,
-    enum: ['BANK_TRANSFER', 'CASH_PICK_UP', 'MOBILE_WALLET', 'UPI'],
+    enum: TRANSFER_MODE_VALUES,
     required: true,
     index: true
   },
@@ -105,7 +113,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   },
   callbackProvider: {
     type: String,
-    enum: ['voice', 'text'],
+    enum: CALLBACK_PROVIDER_VALUES,
     default: 'voice'
   },
   callbackUrl: {
@@ -125,7 +133,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   statusHistory: [{
     status: {
       type: String,
-      enum: ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'AML_HOLD'],
+      enum: TRANSACTION_STATUS_VALUES,
       required: true
     },
     timestamp: {
@@ -138,7 +146,7 @@ const remittanceOrderSchema = new mongoose.Schema({
     },
     updatedBy: {
       type: String,
-      enum: ['system', 'customer', 'bank', 'admin'],
+      enum: UPDATE_SOURCE_VALUES,
       default: 'system'
     }
   }],
@@ -154,7 +162,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   },
   deliveryStatus: {
     type: String,
-    enum: ['pending', 'delivered', 'delayed', 'failed'],
+    enum: DELIVERY_STATUS_VALUES,
     default: 'pending'
   },
   
@@ -213,7 +221,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   // Payment method tracking
   paymentMethod: {
     type: String,
-    enum: ['CARD', 'WALLET', 'BANK_ACCOUNT', 'CASH'],
+    enum: PAYMENT_METHOD_VALUES,
     default: 'CARD'
   }
 }, {

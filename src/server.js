@@ -282,7 +282,7 @@ class RemittanceMCPServer {
                 },
                 customerSatisfaction: {
                   type: 'string',
-                  enum: ['satisfied', 'unsatisfied', 'escalate'],
+                  enum: ['satisfied', 'unsatisfied'],
                   description: 'Customer satisfaction level',
                 },
                 lastFourDigits: {

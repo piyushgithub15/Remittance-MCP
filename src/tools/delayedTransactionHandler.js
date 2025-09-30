@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
+import { CUSTOMER_SATISFACTION_VALUES } from '../constants/enums.js';
 
 // Validation schema for delayed transaction handling parameters
 export const delayedTransactionHandlerSchema = z.object({
   orderNo: z.string().min(1, 'orderNo is required'),
-  customerSatisfaction: z.enum(['satisfied', 'unsatisfied', 'escalate']).optional(),
-  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits').optional()
+  customerSatisfaction: z.enum(CUSTOMER_SATISFACTION_VALUES).optional()
 });
 
 // Default user ID for demo purposes
@@ -43,7 +43,6 @@ const ESCALATION_MESSAGES = [
  * @param {Object} params - Parameters object
  * @param {string} params.orderNo - Order number to check
  * @param {string} [params.customerSatisfaction] - Customer satisfaction level
- * @param {string} [params.lastFourDigits] - Last 4 digits of EID for verification
  * @returns {Object} ToolResult with appropriate response
  */
 export async function handleDelayedTransaction(params) {
@@ -62,7 +61,7 @@ export async function handleDelayedTransaction(params) {
       };
     }
 
-    const { orderNo, customerSatisfaction, lastFourDigits } = validation.data;
+    const { orderNo, customerSatisfaction } = validation.data;
 
     // Find the order
     const order = await RemittanceOrder.findOne({ 
@@ -121,7 +120,7 @@ export async function handleDelayedTransaction(params) {
         response = handleSatisfiedCustomer(order, timeElapsedMinutes);
         break;
       case 'unsatisfied':
-        response = handleUnsatisfiedCustomer(order, timeElapsedMinutes, lastFourDigits);
+        response = handleUnsatisfiedCustomer(order, timeElapsedMinutes);
         break;
       case 'escalate':
         response = handleEscalation(order, timeElapsedMinutes);
@@ -208,30 +207,9 @@ function handleSatisfiedCustomer(order, timeElapsedMinutes) {
  * Handle unsatisfied customer
  * @param {Object} order - Remittance order object
  * @param {number} timeElapsedMinutes - Minutes elapsed since transaction
- * @param {string} lastFourDigits - Last 4 digits of EID
  * @returns {Object} Response object
  */
-function handleUnsatisfiedCustomer(order, timeElapsedMinutes, lastFourDigits) {
-  // If identity verification is provided, verify it first
-  if (lastFourDigits) {
-    const identityVerified = verifyIdentitySimple(lastFourDigits);
-    
-    if (!identityVerified) {
-      return {
-        code: 400,
-        message: 'Identity verification failed',
-        data: {
-          orderNo: order.orderNo,
-          timeElapsedMinutes: timeElapsedMinutes,
-          isDelayed: true,
-          response: 'I apologize, but I was unable to verify your identity with the provided information. Please provide the correct last 4 digits of your Emirates ID to proceed.',
-          identityVerified: false,
-          escalationAvailable: true
-        }
-      };
-    }
-  }
-
+function handleUnsatisfiedCustomer(order, timeElapsedMinutes) {
   // Provide additional reassurance and options
   const additionalReassurance = "I understand your frustration completely. Let me provide you with some additional information: Your transaction is confirmed as processed on our end, and we're monitoring it closely. While we cannot control the receiving bank's processing time, we can offer you a few options to help resolve this situation.";
 
@@ -249,8 +227,7 @@ function handleUnsatisfiedCustomer(order, timeElapsedMinutes, lastFourDigits) {
         'Set up monitoring alerts for status updates',
         'Provide alternative contact methods for updates'
       ],
-      escalationRecommended: true,
-      identityVerified: lastFourDigits ? true : false
+      escalationRecommended: true
     }
   };
 }
@@ -283,23 +260,6 @@ function handleEscalation(order, timeElapsedMinutes) {
   };
 }
 
-/**
- * Simple identity verification (placeholder implementation)
- * @param {string} lastFourDigits - Last 4 digits of EID
- * @returns {boolean} True if verified, false otherwise
- */
-function verifyIdentitySimple(lastFourDigits) {
-  // This is a simplified verification - in real implementation, 
-  // this would check against the beneficiary database
-  
-  // Check if last 4 digits are valid (basic validation)
-  if (!/^\d{4}$/.test(lastFourDigits)) {
-    return false;
-  }
-  
-  // For demo purposes, accept any valid format
-  return true;
-}
 
 /**
  * Generate escalation summary
@@ -314,7 +274,7 @@ function generateEscalationSummary(order, timeElapsedMinutes) {
     country: order.country,
     currency: order.currency,
     amount: order.fromAmount.toString(),
-    transactionTime: order.date.toISOString(),
+    transactionTime: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
     delayMinutes: timeElapsedMinutes - 10,
     status: order.status,
     customerConcerns: [
@@ -359,7 +319,7 @@ export async function getDelayedTransactions(userId = DEFAULT_USER_ID) {
       transferMode: order.transferMode,
       country: order.country,
       amount: order.fromAmount.toString(),
-      transactionTime: order.date.toISOString()
+      transactionTime: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' })
     }));
 
   } catch (error) {

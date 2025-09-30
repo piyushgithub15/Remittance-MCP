@@ -102,7 +102,7 @@ export async function getTransactionTimeframe(params) {
       data: {
         orderNo: order.orderNo,
         status: order.status,
-        transactionTime: transactionTime.toISOString(),
+        transactionTime: transactionTime.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         timeElapsedMinutes: timeElapsedMinutes,
         isDelayed: isDelayed,
         expectedArrivalTime: expectedArrivalTime,
