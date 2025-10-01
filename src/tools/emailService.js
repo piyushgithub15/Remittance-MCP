@@ -47,45 +47,22 @@ const EMAIL_TEMPLATES = {
           </div>
           
           <div class="content">
-            <p>Dear {{customerName}},</p>
+            <p>Dear Customer,</p>
             
-            <p>We understand your concern regarding transaction <strong>{{orderNo}}</strong> where the beneficiary has not received the funds despite showing as completed in our system.</p>
+            <p>We apologize for the delay in processing your transfer (Order No: {{orderNo}}). As of {{currentDate}}, your transaction is marked as delayed pending submission of beneficiary bank details.</p>
             
-            <div class="highlight">
-              <h3>🔍 Investigation Required</h3>
-              <p>To help us investigate this matter thoroughly, we need you to provide the beneficiary's bank details through our secure portal.</p>
-            </div>
-            
-            <h3>Next Steps:</h3>
-            <ol>
-              <li>Click the button below to access our secure submission portal</li>
-              <li>Enter the beneficiary's complete bank account details</li>
-              <li>Upload any relevant bank statements or documents</li>
-              <li>Submit the form for our team to review</li>
-            </ol>
+            <p>Please use the secure link below to submit the required bank information:</p>
             
             <div style="text-align: center;">
-              <a href="{{submissionUrl}}" class="button">Submit Bank Details</a>
+              <a href="{{submissionUrl}}" class="button">Submit Beneficiary Bank Details</a>
             </div>
             
-            <h3>What We'll Do:</h3>
-            <ul>
-              <li>Verify the beneficiary's bank account details</li>
-              <li>Contact the beneficiary bank directly</li>
-              <li>Trace the transaction through the banking network</li>
-              <li>Provide you with a detailed resolution within 2-3 business days</li>
-            </ul>
+            <p>Once you have submitted the details, our support team will investigate the delay and update you on the status as soon as possible.</p>
             
-            <div class="highlight">
-              <p><strong>Important:</strong> This link is valid for 7 days and is unique to your transaction. Please do not share it with others.</p>
-            </div>
-            
-            <p>If you have any questions or need assistance, please contact our support team immediately.</p>
-            
-            <p>Thank you for your patience and cooperation.</p>
+            <p>We appreciate your patience and apologize for any inconvenience caused.</p>
             
             <p>Best regards,<br>
-            Remittance Support Team</p>
+            AirEV Support Team</p>
           </div>
           
           <div class="footer">
@@ -99,31 +76,19 @@ const EMAIL_TEMPLATES = {
     text: `
       Transaction Dispute Resolution - Order {{orderNo}}
       
-      Dear {{customerName}},
+      Dear Customer,
       
-      We understand your concern regarding transaction {{orderNo}} where the beneficiary has not received the funds despite showing as completed in our system.
+      We apologize for the delay in processing your transfer (Order No: {{orderNo}}). As of {{currentDate}}, your transaction is marked as delayed pending submission of beneficiary bank details.
       
-      INVESTIGATION REQUIRED
-      To help us investigate this matter thoroughly, we need you to provide the beneficiary's bank details through our secure portal.
+      Please use the secure link below to submit the required bank information:
+      {{submissionUrl}}
       
-      Next Steps:
-      1. Visit: {{submissionUrl}}
-      2. Enter the beneficiary's complete bank account details
-      3. Upload any relevant bank statements or documents
-      4. Submit the form for our team to review
+      Once you have submitted the details, our support team will investigate the delay and update you on the status as soon as possible.
       
-      What We'll Do:
-      - Verify the beneficiary's bank account details
-      - Contact the beneficiary bank directly
-      - Trace the transaction through the banking network
-      - Provide you with a detailed resolution within 2-3 business days
-      
-      Important: This link is valid for 7 days and is unique to your transaction.
-      
-      If you have any questions, please contact our support team immediately.
+      We appreciate your patience and apologize for any inconvenience caused.
       
       Best regards,
-      Remittance Support Team
+      AirEV Support Team
     `
   },
   
@@ -231,7 +196,8 @@ export async function sendCustomerEmail(params) {
             text: `Validation error: ${validation.error.errors[0].message}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -239,7 +205,7 @@ export async function sendCustomerEmail(params) {
 
     // Generate unique submission URL for bank details
     const submissionId = uuidv4();
-    const submissionUrl = `${process.env.BASE_URL || 'https://remittance.example.com'}/dispute/submit/${submissionId}`;
+    const submissionUrl = `${process.env.BASE_URL || 'https://airev.example.com'}/upload/bank-details/${submissionId}`;
 
     // Get email template
     const template = EMAIL_TEMPLATES[emailType];
@@ -251,15 +217,24 @@ export async function sendCustomerEmail(params) {
             text: `Invalid email type: ${emailType}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
     // Replace template variables
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      timeZone: 'Asia/Dubai'
+    });
+    
     const templateData = {
       orderNo,
       customerName: customerName || 'Valued Customer',
       submissionUrl,
+      currentDate,
       status: 'COMPLETED',
       statusClass: 'success',
       statusMessage: 'Your transaction has been processed successfully.',
@@ -315,7 +290,8 @@ export async function sendCustomerEmail(params) {
           text: `Email sending failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }

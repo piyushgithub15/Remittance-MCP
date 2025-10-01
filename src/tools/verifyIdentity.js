@@ -29,7 +29,8 @@ export async function verifyIdentity(params) {
             text: `Validation error: ${validation.error.errors[0].message}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -90,7 +91,8 @@ export async function verifyIdentity(params) {
             })
           }
         ],
-        isError: false
+        isError: true,
+        code: -32602
       };
     }
 
@@ -130,7 +132,8 @@ export async function verifyIdentity(params) {
           text: `Identity verification failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }

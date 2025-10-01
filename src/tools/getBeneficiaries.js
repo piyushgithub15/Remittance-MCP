@@ -36,7 +36,8 @@ export async function getBeneficiaries(params) {
             text: `Get beneficiaries failed: ${validation.error.errors[0].message}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -132,7 +133,8 @@ export async function getBeneficiaries(params) {
           text: `Get beneficiaries failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }

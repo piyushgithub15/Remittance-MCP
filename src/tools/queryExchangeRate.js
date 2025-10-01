@@ -30,7 +30,8 @@ export async function queryExchangeRate(params) {
             text: `Query exchange rate failed: ${validation.error.errors[0].message}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -61,7 +62,8 @@ export async function queryExchangeRate(params) {
             })
           }
         ],
-        isError: false
+        isError: true,
+        code: -32602
       };
     }
 
@@ -103,7 +105,8 @@ export async function queryExchangeRate(params) {
           text: `Query exchange rate failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }

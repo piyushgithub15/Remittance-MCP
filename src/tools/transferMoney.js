@@ -52,7 +52,8 @@ export async function transferMoney(params) {
             text: 'Transfer money failed: beneficiaryName and sendAmount are required.'
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -67,7 +68,8 @@ export async function transferMoney(params) {
           text: `Transfer money failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }
@@ -183,7 +185,8 @@ async function handleDiscoveryStage() {
           text: `Discovery failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }
@@ -282,7 +285,8 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
             })
           }
         ],
-        isError: false
+        isError: true,
+        code: -32602
       };
     }
 
@@ -385,7 +389,8 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
           text: `Transfer execution failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }

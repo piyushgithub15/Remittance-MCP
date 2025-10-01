@@ -48,7 +48,8 @@ export async function transactionQuery(params) {
             text: `Validation error: ${validation.error.errors[0].message}`
           }
         ],
-        isError: true
+        isError: true,
+        code: -32602
       };
     }
 
@@ -71,7 +72,8 @@ export async function transactionQuery(params) {
           text: `Transaction query failed: ${error.message}`
         }
       ],
-      isError: true
+      isError: true,
+      code: -32603
     };
   }
 }
