@@ -21,9 +21,11 @@ import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { verifyIdentity } from './tools/verifyIdentity.js';
 import { transactionQuery } from './tools/transactionQuery.js';
 import { sendCustomerEmail } from './tools/emailService.js';
+import { refreshStatus } from './tools/refreshStatus.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
+import RemittanceOrder from './models/RemittanceOrder.js';
 import { 
   transferMoneySchema, 
   queryExchangeRateSchema, 
@@ -34,6 +36,7 @@ import {
 import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionQuerySchema } from './tools/transactionQuery.js';
 import { emailServiceSchema } from './tools/emailService.js';
+import { refreshStatusSchema } from './tools/refreshStatus.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -306,6 +309,20 @@ class RemittanceMCPServer {
               required: ['customerEmail', 'orderNo'],
             },
           },
+          {
+            name: 'refreshStatus',
+            description: 'Refresh transaction status by updating status with actual_status. Used when a user complains about a completed transaction to reveal the true status (SUCCESS or FAILED).',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                orderNo: {
+                  type: 'string',
+                  description: 'Order number to refresh status for',
+                },
+              },
+              required: ['orderNo'],
+            },
+          },
         ],
       };
     });
@@ -364,6 +381,14 @@ class RemittanceMCPServer {
             }
             
             return await sendCustomerEmail(emailValidation.data);
+          case 'refreshStatus':
+            // Validate using Zod schema
+            const refreshValidation = validateWithZod(refreshStatusSchema, args);
+            if (!refreshValidation.success) {
+              return createErrorResponse(refreshValidation.error);
+            }
+            
+            return await refreshStatus(refreshValidation.data);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -528,6 +553,17 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         }
         result = await sendCustomerEmail(emailValidation.data);
         break;
+      case 'refreshStatus':
+        // Validate using Zod schema
+        const refreshValidation = validateWithZod(refreshStatusSchema, params);
+        if (!refreshValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${refreshValidation.error}`
+          });
+        }
+        result = await refreshStatus(refreshValidation.data);
+        break;
       default:
         return res.status(400).json({
           code: 1,
@@ -582,7 +618,7 @@ app.post('/callback/remittance', async (req, res) => {
 // Test endpoint to simulate payment completion
 app.post('/test/complete-payment', async (req, res) => {
   try {
-    const { orderNo, status = 'SUCCESS', failReason = null } = req.body;
+    const { orderNo, status = 'COMPLETED', actualStatus = 'SUCCESS', failReason = null } = req.body;
     
     if (!orderNo) {
       return res.status(400).json({ error: 'orderNo is required' });
@@ -591,18 +627,30 @@ app.post('/test/complete-payment', async (req, res) => {
     // Import the updateOrderStatus function
     const { updateOrderStatus } = await import('./tools/transferMoney.js');
     
+    // First set to COMPLETED status
     const updatedOrder = await updateOrderStatus(orderNo, status, failReason);
     
     if (updatedOrder) {
+      // If we want to set a specific actual_status, update it directly
+      if (actualStatus && actualStatus !== 'SUCCESS') {
+        await RemittanceOrder.findOneAndUpdate(
+          { orderNo },
+          { actual_status: actualStatus }
+        );
+      }
+      
+      const finalOrder = await RemittanceOrder.findOne({ orderNo });
+      
       res.json({ 
         success: true, 
-        message: `Order ${orderNo} status updated to ${status}`,
+        message: `Order ${orderNo} status updated to ${status} with actual_status ${finalOrder.actual_status}`,
         order: {
-          orderNo: updatedOrder.orderNo,
-          status: updatedOrder.status,
-          fromAmount: updatedOrder.fromAmount,
-          feeAmount: updatedOrder.feeAmount,
-          totalPayAmount: updatedOrder.totalPayAmount
+          orderNo: finalOrder.orderNo,
+          status: finalOrder.status,
+          actual_status: finalOrder.actual_status,
+          fromAmount: finalOrder.fromAmount,
+          feeAmount: finalOrder.feeAmount,
+          totalPayAmount: finalOrder.totalPayAmount
         }
       });
     } else {

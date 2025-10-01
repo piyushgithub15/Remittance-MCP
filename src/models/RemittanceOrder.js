@@ -46,6 +46,12 @@ const remittanceOrderSchema = new mongoose.Schema({
     default: 'PENDING',
     index: true
   },
+  actual_status: {
+    type: String,
+    enum: TRANSACTION_STATUS_VALUES,
+    default: 'PENDING',
+    index: true
+  },
   dateDesc: {
     type: String,
     required: true
@@ -230,6 +236,7 @@ const remittanceOrderSchema = new mongoose.Schema({
 
 // Create compound indexes for efficient queries
 remittanceOrderSchema.index({ userId: 1, status: 1 });
+remittanceOrderSchema.index({ userId: 1, actual_status: 1 });
 remittanceOrderSchema.index({ userId: 1, date: -1 });
 remittanceOrderSchema.index({ userId: 1, transferMode: 1 });
 remittanceOrderSchema.index({ userId: 1, country: 1 });

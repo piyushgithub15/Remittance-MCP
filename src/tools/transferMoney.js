@@ -314,7 +314,8 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
       fromAmount: sendAmount,
       feeAmount: fee,
       totalPayAmount: totalAmount,
-      status: 'PENDING', // Initial status
+      status: 'PENDING', // Initial status for MCP tools filtering
+      actual_status: 'PENDING', // True status that gets updated when completed
       dateDesc: new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' }).split(',')[0], // YYYY-MM-DD format
       date: new Date(),
       failReason: null,
@@ -484,6 +485,14 @@ export async function updateOrderStatus(orderNo, status, failReason = null) {
     const updateData = { status };
     if (failReason) {
       updateData.failReason = failReason;
+    }
+    
+    // When status is COMPLETED, set actual_status to SUCCESS or FAILED
+    if (status === 'COMPLETED') {
+      updateData.actual_status = failReason ? 'FAILED' : 'SUCCESS';
+    } else {
+      // For other statuses, keep actual_status in sync
+      updateData.actual_status = status;
     }
     
     const updatedOrder = await RemittanceOrder.findOneAndUpdate(

@@ -150,6 +150,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
       orders: [{
         orderNo: order.orderNo,
         status: order.status,
+        actual_status: order.actual_status,
         transactionTime: transactionTime.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
         timeElapsedMinutes: timeElapsedMinutes,
         isDelayed: isDelayed,
@@ -281,6 +282,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     return {
       orderNo: order.orderNo,
       status: order.status,
+      actual_status: order.actual_status,
       transactionTime: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
       timeElapsedMinutes: timeElapsedMinutes,
       isDelayed: isDelayed,
