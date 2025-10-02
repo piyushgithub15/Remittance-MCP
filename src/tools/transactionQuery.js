@@ -174,7 +174,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
       }],
       totalCount: 1,
       query: {
-        mode: 'timeframe',
+        mode: 'detailed',
         orderNo: order.orderNo,
         includeDelayInfo: includeDelayInfo
       }
@@ -243,71 +243,20 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     .limit(orderCount)
     .select('orderNo fromAmount toAmount status dateDesc date failReason amlHoldUrl orderDetailUrl transferMode country currency');
 
-  // If orderCount is 1 and we have exactly one order, check if it's delayed
-  if (orderCount === 1 && orders.length === 1) {
-    const order = orders[0];
-    const transactionTime = new Date(order.date);
-    const currentTime = new Date();
-    const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
-    const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
-    
-    // If the single order is delayed and pending, check verification status
-    if (isDelayed && order.status === 'PENDING') {
-      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
-      if (verificationCheck.requiresVerification) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                code: 401,
-                message: 'Identity verification required for delayed transactions',
-                data: {
-                  orderNo: order.orderNo,
-                  isDelayed: true,
-                  requiresVerification: true,
-                  reason: verificationCheck.status.reason,
-                  message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
-                  verificationPrompt: verificationCheck.verificationPrompt
-                }
-              })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
-  }
 
   const orderList = orders.map(order => {
-    // Calculate time elapsed for each order
-    const transactionTime = new Date(order.date);
-    const currentTime = new Date();
-    const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
-    const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
-    
-    // Calculate expected arrival time
-    const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
-    const timeframeMessage = generateTimeframeMessage(order, timeElapsedMinutes, expectedArrivalTime, isDelayed);
-    
+    // For multiple orders, return minimal details without timeframe
     return {
       orderNo: order.orderNo,
       status: order.status,
       actual_status: order.actual_status,
-      transactionTime: order.date.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
-      timeElapsedMinutes: timeElapsedMinutes,
-      isDelayed: isDelayed,
-      expectedArrivalTime: expectedArrivalTime,
-      timeframeMessage: timeframeMessage,
       transferMode: order.transferMode,
       country: order.country,
       currency: order.currency,
       fromAmount: order.fromAmount.toString(),
       toAmount: order.toAmount ? order.toAmount.toString() : null,
       dateDesc: order.dateDesc,
-      failReason: order.failReason,
-      amlHoldUrl: order.amlHoldUrl,
-      orderDetailUrl: order.orderDetailUrl
+      failReason: order.failReason
     };
   });
 
@@ -322,7 +271,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
             orders: orderList,
             totalCount: orderList.length,
             query: {
-              mode: 'list',
+              mode: 'list_minimal',
               transferMode: transferMode || null,
               country: country || null,
               currency: currency || null,
