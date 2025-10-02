@@ -422,11 +422,12 @@ class RemittanceMCPServer {
             throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error) {
+        console.error(`Tool ${name} failed`);
         return {
           content: [
             {
               type: 'text',
-              text: `Error executing ${name}: ${error.message}`,
+              text: 'Tool execution failed',
             },
           ],
           isError: true,
@@ -613,10 +614,10 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    console.error('Error processing MCP message:', error);
+    console.error('MCP message failed');
     res.status(500).json({
       code: 1,
-      content: `Internal server error: ${error.message}`
+      content: 'Internal server error'
     });
   }
 });
@@ -700,20 +701,16 @@ app.post('/test/complete-payment', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Error completing payment:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Payment completion failed');
+    res.status(500).json({ error: 'Payment failed' });
   }
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Express error:', err);
+  console.error('Express error');
   res.status(500).json({
-    timestamp: new Date().toISOString(),
-    status: 500,
-    error: 'Internal Server Error',
-    message: err.message,
-    path: req.path
+    error: 'Internal Server Error'
   });
 });
 

@@ -35,7 +35,7 @@ export async function checkVerificationStatusTool(params) {
     const { action } = validation.data;
 
     // Check verification status
-    const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, action);
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, action);
 
     if (verificationCheck.requiresVerification) {
       return {
@@ -81,12 +81,12 @@ export async function checkVerificationStatusTool(params) {
     };
 
   } catch (error) {
-    console.error('Error in checkVerificationStatus:', error);
+    console.error('Check verification status failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Verification status check failed: ${error.message}`
+          text: 'Verification check failed'
         }
       ],
       isError: true,
@@ -99,8 +99,8 @@ export async function checkVerificationStatusTool(params) {
  * Get verification status for debugging
  * @returns {Object} Current verification status
  */
-export function getVerificationDebugInfo() {
-  const status = checkVerificationStatus(DEFAULT_USER_ID);
+export async function getVerificationDebugInfo() {
+  const status = await checkVerificationStatus(DEFAULT_USER_ID);
   return {
     status,
     timestamp: new Date().toISOString()

@@ -191,7 +191,7 @@ export async function verifyIdentity(params) {
     }
 
     // Store verification status for 5 minutes
-    const verificationRecord = storeVerification(
+    const verificationRecord = await storeVerification(
       DEFAULT_USER_ID,
       beneficiary.id.toString(),
       lastFourDigits,
@@ -232,12 +232,12 @@ export async function verifyIdentity(params) {
     };
 
   } catch (error) {
-    console.error('Error in verifyIdentity:', error);
+    console.error('Verify identity failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Identity verification failed: ${error.message}`
+          text: 'Identity verification failed'
         }
       ],
       isError: true,
@@ -259,7 +259,7 @@ export async function getAllBeneficiaries(userId = DEFAULT_USER_ID) {
 
     return beneficiaries;
   } catch (error) {
-    console.error('Error getting beneficiaries:', error);
+    console.error('Get beneficiaries failed');
     return [];
   }
 }

@@ -26,7 +26,7 @@ async function testDelayVerification() {
     
     // Clear any existing verification
     const { clearVerification } = await import('../src/utils/verificationStore.js');
-    clearVerification('agent1');
+    await clearVerification('agent1');
     
     // Test 1: Query transactions without verification (should work for non-delayed)
     console.log('\n🔄 Test 1: Query transactions without verification (non-delayed)');
@@ -37,7 +37,7 @@ async function testDelayVerification() {
     
     // Test 2: Check verification status (should not require verification)
     console.log('\n🔄 Test 2: Check verification status for general transaction');
-    const status1 = checkVerificationStatus('agent1');
+    const status1 = await checkVerificationStatus('agent1');
     console.log(`Verification required: ${status1.requiresVerification}`);
     console.log(`Status: ${!status1.requiresVerification ? '✅ PASS (No verification required)' : '❌ FAIL'}`);
     
@@ -104,7 +104,7 @@ async function testDelayVerification() {
     console.log('\n✅ Delay-based verification test completed!');
     
   } catch (error) {
-    console.error('❌ Test failed:', error);
+    console.error('❌ Test failed');
   } finally {
     await mongoose.connection.close();
     console.log('\n🔌 Database connection closed');

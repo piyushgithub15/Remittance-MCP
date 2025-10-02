@@ -60,12 +60,12 @@ export async function transferMoney(params) {
     return await handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider);
 
   } catch (error) {
-    console.error('Error in transferMoney:', error);
+    console.error('Transfer money failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Transfer money failed: ${error.message}`
+          text: 'Transfer failed'
         }
       ],
       isError: true,
@@ -177,12 +177,12 @@ async function handleDiscoveryStage() {
       isError: false
     };
   } catch (error) {
-    console.error('Error in handleDiscoveryStage:', error);
+    console.error('Discovery failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Discovery failed: ${error.message}`
+          text: 'Discovery failed'
         }
       ],
       isError: true,
@@ -367,12 +367,12 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
       isError: false
     };
   } catch (error) {
-    console.error('Error in handleExecutionStage:', error);
+    console.error('Execution failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Transfer execution failed: ${error.message}`
+          text: 'Execution failed'
         }
       ],
       isError: true,
@@ -488,7 +488,7 @@ export async function updateOrderStatus(orderNo, status, failReason = null) {
     
     return updatedOrder;
   } catch (error) {
-    console.error('Error updating order status:', error);
+    console.error('Update status failed');
     return null;
   }
 }
@@ -502,7 +502,7 @@ export async function getOrderByNumber(orderNo) {
   try {
     return await RemittanceOrder.findOne({ orderNo }).populate('beneficiaryId');
   } catch (error) {
-    console.error('Error getting order by number:', error);
+    console.error('Get order failed');
     return null;
   }
 }

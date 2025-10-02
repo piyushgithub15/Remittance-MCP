@@ -65,12 +65,12 @@ export async function transactionQuery(params) {
     }
 
   } catch (error) {
-    console.error('Error in transactionQuery:', error);
+    console.error('Transaction query failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Transaction query failed: ${error.message}`
+          text: 'Transaction query failed'
         }
       ],
       isError: true,
@@ -118,7 +118,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
 
   // If transaction is delayed, check verification status
   if (isDelayed && order.status === 'PENDING') {
-    const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
     if (verificationCheck.requiresVerification) {
       return {
         content: [
@@ -253,7 +253,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     
     // If the single order is delayed and pending, check verification status
     if (isDelayed && order.status === 'PENDING') {
-      const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
+      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
       if (verificationCheck.requiresVerification) {
         return {
           content: [
@@ -475,11 +475,11 @@ export async function checkTransactionDelay(orderNo) {
     };
 
   } catch (error) {
-    console.error('Error checking transaction delay:', error);
+    console.error('Check delay failed');
     return {
       isDelayed: false,
       delayMinutes: 0,
-      message: `Error: ${error.message}`
+      message: 'Check failed'
     };
   }
 }

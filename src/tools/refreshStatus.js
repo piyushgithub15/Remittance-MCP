@@ -148,12 +148,12 @@ export async function refreshStatus(params) {
     };
 
   } catch (error) {
-    console.error('Error in refreshStatus:', error);
+    console.error('Refresh status failed');
     return {
       content: [
         {
           type: 'text',
-          text: `Status refresh failed: ${error.message}`
+          text: 'Refresh failed'
         }
       ],
       isError: true,
@@ -194,10 +194,10 @@ export async function checkRefreshNeeded(orderNo) {
     };
 
   } catch (error) {
-    console.error('Error checking refresh needed:', error);
+    console.error('Check refresh failed');
     return {
       needsRefresh: false,
-      message: `Error: ${error.message}`
+      message: 'Check failed'
     };
   }
 }
