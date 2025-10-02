@@ -59,7 +59,33 @@ export async function refreshStatus(params) {
     }
 
     // Check if the order is in completed status
-    if (order.status !== 'COMPLETED') {
+    if (order.status?.toUpperCase() !== 'COMPLETED') {
+      // For pending orders, return minimal details
+      if (order.status?.toUpperCase() === 'PENDING') {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                code: 200,
+                message: 'Order is pending - minimal details only',
+                data: {
+                  orderNo: order.orderNo,
+                  status: order.status,
+                  actualStatus: order.actual_status,
+                  transferMode: order.transferMode,
+                  country: order.country,
+                  currency: order.currency,
+                  fromAmount: order.fromAmount?.toString(),
+                  message: 'Order is still processing. Full details available after completion.'
+                }
+              })
+            }
+          ],
+          isError: false
+        };
+      }
+      
       return {
         content: [
           {
@@ -116,9 +142,9 @@ export async function refreshStatus(params) {
 
     // Generate appropriate message based on actual status
     let statusMessage = '';
-    if (order.actual_status === 'SUCCESS') {
+    if (order.actual_status?.toUpperCase() === 'SUCCESS') {
       statusMessage = 'Your transaction has been successfully completed. The funds have been transferred to the beneficiary.';
-    } else if (order.actual_status === 'FAILED') {
+    } else if (order.actual_status?.toUpperCase() === 'FAILED') {
       statusMessage = `Your transaction has failed. Reason: ${order.failReason || 'Unknown error'}. Please contact customer support for assistance.`;
     }
 
@@ -181,8 +207,8 @@ export async function checkRefreshNeeded(orderNo) {
       };
     }
 
-    const needsRefresh = order.status === 'COMPLETED' && 
-                        (order.actual_status === 'SUCCESS' || order.actual_status === 'FAILED');
+    const needsRefresh = order.status?.toUpperCase() === 'COMPLETED' && 
+                        (order.actual_status?.toUpperCase() === 'SUCCESS' || order.actual_status?.toUpperCase() === 'FAILED');
 
     return {
       needsRefresh,

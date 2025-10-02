@@ -177,13 +177,13 @@ router.post('/process-inquiry', async (req, res) => {
         // Get transaction details
         const order = await RemittanceOrder.findOne({ orderNo, userId });
         if (order) {
-          if (order.status === 'PENDING') {
+          if (order.status?.toUpperCase() === 'PENDING') {
             response = generateAyaResponse('delayed_transaction', { order }, detectedLanguage);
             nextSteps.push('Check app for updated timeframe');
-          } else if (order.status === 'SUCCESS') {
+          } else if (order.status?.toUpperCase() === 'SUCCESS') {
             response = generateAyaResponse('standard_inquiry', { order }, detectedLanguage);
             nextSteps.push('Verify with beneficiary bank');
-          } else if (order.status === 'FAILED') {
+          } else if (order.status?.toUpperCase() === 'FAILED') {
             response = generateAyaResponse('non_receipt', { order }, detectedLanguage);
             nextSteps.push('Process refund to original payment method');
           }

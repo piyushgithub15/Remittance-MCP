@@ -78,7 +78,7 @@ const getStatusMessage = (order, scenario = 'standard') => {
       return `I completely understand your concern about the delay. Your transaction has already been processed successfully on our side. The updated delivery timeframe is ${timeframe}, and the delay is due to the beneficiary bank's processing schedule. Weekends and public holidays can cause additional delays, as many banks only process on working days.`;
     
     case 'non_receipt':
-      if (order.status === 'FAILED') {
+      if (order.status?.toUpperCase() === 'FAILED') {
         return 'I apologize, but the transaction was unsuccessful. A refund will be processed to your original payment method.';
       } else {
         return 'The transfer was processed successfully from our side. To investigate further, I need the beneficiary\'s bank statement showing the account activity for the transaction period.';
@@ -129,8 +129,8 @@ router.post('/status', async (req, res) => {
 
     // Get status message based on current status
     let scenario = 'standard';
-    if (order.status === 'PENDING') scenario = 'delayed';
-    if (order.status === 'FAILED') scenario = 'non_receipt';
+    if (order.status?.toUpperCase() === 'PENDING') scenario = 'delayed';
+    if (order.status?.toUpperCase() === 'FAILED') scenario = 'non_receipt';
 
     const response = {
       success: true,
@@ -153,7 +153,7 @@ router.post('/status', async (req, res) => {
           receivedAmount: order.receivedAmount,
           exchangeRate: order.exchangeRate
         },
-        nextSteps: order.status === 'SUCCESS' 
+        nextSteps: order.status?.toUpperCase() === 'SUCCESS' 
           ? 'Please check with the beneficiary bank for final confirmation.'
           : 'Please complete the payment to proceed with the transfer.'
       }
@@ -257,7 +257,7 @@ router.post('/refresh-status', async (req, res) => {
     const refreshedOrder = { ...order.toObject() };
     
     // Simulate potential status changes
-    if (order.status === 'PENDING' && forceRefresh) {
+    if (order.status?.toUpperCase() === 'PENDING' && forceRefresh) {
       // Simulate status update
       refreshedOrder.status = 'SUCCESS';
       refreshedOrder.bankProcessingTime = new Date();

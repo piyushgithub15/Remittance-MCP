@@ -117,7 +117,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
   const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
   // If transaction is delayed, check verification status
-  if (isDelayed && order.status === 'PENDING') {
+  if (isDelayed && order.status?.toUpperCase() === 'PENDING') {
     const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
     if (verificationCheck.requiresVerification) {
       return {

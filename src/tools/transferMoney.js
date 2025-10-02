@@ -473,7 +473,7 @@ export async function updateOrderStatus(orderNo, status, failReason = null) {
     }
     
     // When status is COMPLETED, set actual_status to SUCCESS or FAILED
-    if (status === 'COMPLETED') {
+    if (status?.toUpperCase() === 'COMPLETED') {
       updateData.actual_status = failReason ? 'FAILED' : 'SUCCESS';
     } else {
       // For other statuses, keep actual_status in sync
