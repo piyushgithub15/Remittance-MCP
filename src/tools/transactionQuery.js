@@ -60,7 +60,7 @@ export async function transactionQuery(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -129,7 +129,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
           })
         }
       ],
-      isError: false
+      isError: true
     };
   }
 
@@ -159,7 +159,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
           })
         }
       ],
-      isError: false
+      isError: true
     };
   }
 
@@ -217,7 +217,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
         text: JSON.stringify(response)
       }
     ],
-    isError: false
+    isError: true
   };
 }
 
@@ -289,7 +289,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
   }
@@ -348,7 +348,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
         })
       }
     ],
-    isError: false
+    isError: true
   };
 }
 

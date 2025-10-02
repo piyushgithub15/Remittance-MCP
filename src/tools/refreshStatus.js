@@ -54,7 +54,7 @@ export async function refreshStatus(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -76,7 +76,7 @@ export async function refreshStatus(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -144,7 +144,7 @@ export async function refreshStatus(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: false
+      isError: true
     };
 
   } catch (error) {

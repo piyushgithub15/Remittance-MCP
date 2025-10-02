@@ -71,7 +71,7 @@ export async function verifyIdentity(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
     
@@ -228,7 +228,7 @@ export async function verifyIdentity(params) {
           })
         }
       ],
-      isError: false
+      isError: true
     };
 
   } catch (error) {

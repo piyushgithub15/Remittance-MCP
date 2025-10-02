@@ -42,6 +42,6 @@ export function createErrorResponse(message, code = 400) {
         exchangeRate: null
       })
     }],
-    isError: false
+    isError: true
   };
 }

@@ -56,7 +56,7 @@ export async function checkVerificationStatusTool(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -77,7 +77,7 @@ export async function checkVerificationStatusTool(params) {
           })
         }
       ],
-      isError: false
+      isError: true
     };
 
   } catch (error) {

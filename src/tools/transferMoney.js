@@ -174,7 +174,7 @@ async function handleDiscoveryStage() {
           text: JSON.stringify(response)
         }
       ],
-      isError: false
+      isError: true
     };
   } catch (error) {
     console.error('Error in handleDiscoveryStage:', error);
@@ -229,7 +229,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -245,7 +245,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -261,7 +261,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -379,7 +379,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
           text: JSON.stringify(response)
         }
       ],
-      isError: false
+      isError: true
     };
   } catch (error) {
     console.error('Error in handleExecutionStage:', error);

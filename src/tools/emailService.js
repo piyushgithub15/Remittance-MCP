@@ -278,7 +278,7 @@ export async function sendCustomerEmail(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: false
+      isError: true
     };
 
   } catch (error) {

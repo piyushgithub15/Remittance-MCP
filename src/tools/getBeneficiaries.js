@@ -81,7 +81,7 @@ export async function getBeneficiaries(params) {
             })
           }
         ],
-        isError: false
+        isError: true
       };
     }
 
@@ -121,7 +121,7 @@ export async function getBeneficiaries(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: false
+      isError: true
     };
 
   } catch (error) {
