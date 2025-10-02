@@ -22,6 +22,7 @@ import { verifyIdentity } from './tools/verifyIdentity.js';
 import { transactionQuery } from './tools/transactionQuery.js';
 import { sendCustomerEmail } from './tools/emailService.js';
 import { refreshStatus } from './tools/refreshStatus.js';
+import { checkVerificationStatusTool } from './tools/checkVerificationStatus.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
@@ -37,6 +38,7 @@ import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionQuerySchema } from './tools/transactionQuery.js';
 import { emailServiceSchema } from './tools/emailService.js';
 import { refreshStatusSchema } from './tools/refreshStatus.js';
+import { checkVerificationStatusSchema } from './tools/checkVerificationStatus.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -328,6 +330,20 @@ class RemittanceMCPServer {
               required: ['orderNo'],
             },
           },
+          {
+            name: 'checkVerificationStatus',
+            description: 'Check if user is verified within the last 5 minutes. Returns verification status and prompts for verification if needed.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                action: {
+                  type: 'string',
+                  description: 'Action being performed (default: transaction)',
+                },
+              },
+              required: [],
+            },
+          },
         ],
       };
     });
@@ -394,6 +410,14 @@ class RemittanceMCPServer {
             }
             
             return await refreshStatus(refreshValidation.data);
+          case 'checkVerificationStatus':
+            // Validate using Zod schema
+            const verificationValidation = validateWithZod(checkVerificationStatusSchema, args);
+            if (!verificationValidation.success) {
+              return createErrorResponse(verificationValidation.error);
+            }
+            
+            return await checkVerificationStatusTool(verificationValidation.data);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -568,6 +592,17 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
           });
         }
         result = await refreshStatus(refreshValidation.data);
+        break;
+      case 'checkVerificationStatus':
+        // Validate using Zod schema
+        const verificationValidation = validateWithZod(checkVerificationStatusSchema, params);
+        if (!verificationValidation.success) {
+          return res.status(400).json({
+            code: 1,
+            content: `Validation error: ${verificationValidation.error}`
+          });
+        }
+        result = await checkVerificationStatusTool(verificationValidation.data);
         break;
       default:
         return res.status(400).json({

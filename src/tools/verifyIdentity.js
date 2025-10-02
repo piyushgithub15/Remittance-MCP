@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
+import { storeVerification } from '../utils/verificationStore.js';
 
 // Validation schema for identity verification parameters
 export const verifyIdentitySchema = z.object({
@@ -189,6 +190,14 @@ export async function verifyIdentity(params) {
       };
     }
 
+    // Store verification status for 5 minutes
+    const verificationRecord = storeVerification(
+      DEFAULT_USER_ID,
+      beneficiary.id.toString(),
+      lastFourDigits,
+      expiryDate
+    );
+
     // Identity verified successfully
     return {
       content: [
@@ -209,7 +218,12 @@ export async function verifyIdentity(params) {
               },
               lastFourDigits: lastFourDigits,
               providedExpiryDate: expiryDate,
-              storedExpiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0]
+              storedExpiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0],
+              verification: {
+                verifiedAt: verificationRecord.verifiedAt.toISOString(),
+                expiresAt: verificationRecord.expiresAt.toISOString(),
+                timeRemaining: Math.floor((verificationRecord.expiresAt.getTime() - new Date().getTime()) / 1000)
+              }
             }
           })
         }

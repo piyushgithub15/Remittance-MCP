@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
+import { checkVerificationRequired } from '../utils/verificationStore.js';
 
 // Validation schema for transaction query parameters
 export const transactionQuerySchema = z.object({
@@ -38,6 +39,31 @@ const DELAY_THRESHOLD_MINUTES = 10;
  */
 export async function transactionQuery(params) {
   try {
+    // Check verification status first
+    const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'transaction_query');
+    if (verificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Identity verification required for transaction queries',
+              data: {
+                verified: false,
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: verificationCheck.message,
+                verificationPrompt: verificationCheck.verificationPrompt,
+                action: 'transaction_query'
+              }
+            })
+          }
+        ],
+        isError: false
+      };
+    }
+
     // Validate input parameters
     const validation = transactionQuerySchema.safeParse(params);
     if (!validation.success) {
