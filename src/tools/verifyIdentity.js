@@ -228,7 +228,7 @@ export async function verifyIdentity(params) {
           })
         }
       ],
-      isError: true
+      isError: false
     };
 
   } catch (error) {

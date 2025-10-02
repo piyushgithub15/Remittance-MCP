@@ -174,7 +174,7 @@ async function handleDiscoveryStage() {
           text: JSON.stringify(response)
         }
       ],
-      isError: true
+      isError: false
     };
   } catch (error) {
     console.error('Error in handleDiscoveryStage:', error);
@@ -249,21 +249,6 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
       };
     }
 
-    // Check if KYC is required (mock condition)
-    if (sendAmount > 10000) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 610,
-              message: 'Please do KYC for member'
-            })
-          }
-        ],
-        isError: true
-      };
-    }
 
     // Get exchange rate from database
     const exchangeRateData = await ExchangeRate.findOne({
@@ -379,7 +364,7 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
           text: JSON.stringify(response)
         }
       ],
-      isError: true
+      isError: false
     };
   } catch (error) {
     console.error('Error in handleExecutionStage:', error);

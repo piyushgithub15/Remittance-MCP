@@ -93,7 +93,7 @@ export async function queryExchangeRate(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: true
+      isError: false
     };
 
   } catch (error) {

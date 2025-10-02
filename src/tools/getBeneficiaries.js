@@ -121,7 +121,7 @@ export async function getBeneficiaries(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: true
+      isError: false
     };
 
   } catch (error) {

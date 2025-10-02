@@ -197,7 +197,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
         text: JSON.stringify(response)
       }
     ],
-    isError: true
+    isError: false
   };
 }
 
@@ -333,7 +333,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
         })
       }
     ],
-    isError: true
+    isError: false
   };
 }
 

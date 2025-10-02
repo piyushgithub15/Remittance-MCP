@@ -144,7 +144,7 @@ export async function refreshStatus(params) {
           text: JSON.stringify(response)
         }
       ],
-      isError: true
+      isError: false
     };
 
   } catch (error) {

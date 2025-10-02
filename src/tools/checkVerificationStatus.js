@@ -77,7 +77,7 @@ export async function checkVerificationStatusTool(params) {
           })
         }
       ],
-      isError: true
+      isError: false
     };
 
   } catch (error) {
