@@ -159,7 +159,12 @@ export async function seedBeneficiaries() {
         country: 'CN',
         transferModes: ['BANK_TRANSFER'],
         accountNumber: '1234567890',
-        bankName: 'Bank of China'
+        bankName: 'Bank of China',
+        isActive: true,
+        idCard: {
+          idNumber: '784-1985-1234-5678',
+          expiryDate: new Date('2025-12-25')
+        }
       },
       {
         userId: 'agent1',
@@ -171,7 +176,12 @@ export async function seedBeneficiaries() {
         country: 'CN',
         transferModes: ['BANK_TRANSFER'],
         accountNumber: '6543210987',
-        bankName: 'ICBC'
+        bankName: 'ICBC',
+        isActive: true,
+        idCard: {
+          idNumber: '784-1990-2345-6789',
+          expiryDate: new Date('2026-03-15')
+        }
       },
       {
         userId: 'agent1',
@@ -183,7 +193,12 @@ export async function seedBeneficiaries() {
         country: 'US',
         transferModes: ['BANK_TRANSFER'],
         accountNumber: '9876543210',
-        bankName: 'Wells Fargo'
+        bankName: 'Wells Fargo',
+        isActive: true,
+        idCard: {
+          idNumber: '784-1988-3456-7890',
+          expiryDate: new Date('2026-08-20')
+        }
       },
       {
         userId: 'agent1',
@@ -195,7 +210,12 @@ export async function seedBeneficiaries() {
         country: 'US',
         transferModes: ['BANK_TRANSFER', 'CASH_PICK_UP'],
         accountNumber: '1234567890',
-        bankName: 'Chase Bank'
+        bankName: 'Chase Bank',
+        isActive: true,
+        idCard: {
+          idNumber: '784-1992-4567-8901',
+          expiryDate: new Date('2027-01-10')
+        }
       },
       {
         userId: 'agent1',
@@ -207,7 +227,12 @@ export async function seedBeneficiaries() {
         country: 'IN',
         transferModes: ['BANK_TRANSFER', 'UPI'],
         accountNumber: '1122334455',
-        bankName: 'State Bank of India'
+        bankName: 'State Bank of India',
+        isActive: true,
+        idCard: {
+          idNumber: '784-1987-5678-9012',
+          expiryDate: new Date('2025-11-30')
+        }
       }
     ];
 

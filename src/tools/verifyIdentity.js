@@ -4,6 +4,7 @@ import Beneficiary from '../models/Beneficiary.js';
 // Validation schema for identity verification parameters
 export const verifyIdentitySchema = z.object({
   lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format'),
   beneficiaryId: z.string().optional()
 });
 
@@ -11,9 +12,10 @@ export const verifyIdentitySchema = z.object({
 const DEFAULT_USER_ID = 'agent1';
 
 /**
- * Verify customer identity using last four digits of EID (expiry date from beneficiary record)
+ * Verify customer identity using last four digits of EID and expiry date
  * @param {Object} params - Parameters object
  * @param {string} params.lastFourDigits - Last 4 digits of Emirates ID
+ * @param {string} params.expiryDate - Expiry date in DD/MM/YYYY format
  * @param {string} [params.beneficiaryId] - Optional beneficiary ID to verify against
  * @returns {Object} ToolResult with verification status
  */
@@ -34,12 +36,13 @@ export async function verifyIdentity(params) {
       };
     }
 
-    const { lastFourDigits, beneficiaryId } = validation.data;
+    const { lastFourDigits, expiryDate, beneficiaryId } = validation.data;
 
     // Build query to find matching beneficiary by last 4 digits only
+    // Use a more specific regex to match exactly the last 4 digits at the end
     const query = { 
       userId: DEFAULT_USER_ID,
-      'idCard.idNumber': { $regex: lastFourDigits + '$' } // Match last 4 digits
+      'idCard.idNumber': { $regex: `-\\d{4}-${lastFourDigits}$` } // Match exactly last 4 digits after dash-4digits-dash pattern
     };
 
     // If beneficiaryId is provided, add it to the query
@@ -47,10 +50,11 @@ export async function verifyIdentity(params) {
       query.id = parseInt(beneficiaryId);
     }
 
-    // Search for matching beneficiary
-    const beneficiary = await Beneficiary.findOne(query);
-
-    if (!beneficiary) {
+    // Search for matching beneficiaries (should be only one)
+    const beneficiaries = await Beneficiary.find(query);
+    
+    // Ensure only one beneficiary matches
+    if (beneficiaries.length === 0) {
       return {
         content: [
           {
@@ -69,11 +73,100 @@ export async function verifyIdentity(params) {
         isError: false
       };
     }
+    
+    if (beneficiaries.length > 1) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 400,
+              message: 'Identity verification failed: Multiple beneficiaries found with same last 4 digits',
+              data: {
+                verified: false,
+                reason: 'MULTIPLE_MATCHES',
+                lastFourDigits: lastFourDigits,
+                matchCount: beneficiaries.length
+              }
+            })
+          }
+        ],
+        isError: true,
+        code: -32602
+      };
+    }
+    
+    const beneficiary = beneficiaries[0];
 
-    // Check if the beneficiary's Emirates ID is expired using stored expiry date
-    const currentDate = new Date();
+    // Parse the provided expiry date (DD/MM/YYYY format)
+    const [day, month, year] = expiryDate.split('/');
+    const providedExpiryDate = new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+    
+    // Check if the provided date is valid
+    if (isNaN(providedExpiryDate.getTime())) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 400,
+              message: 'Identity verification failed: Invalid expiry date format',
+              data: {
+                verified: false,
+                reason: 'INVALID_DATE_FORMAT',
+                lastFourDigits: lastFourDigits,
+                providedExpiryDate: expiryDate
+              }
+            })
+          }
+        ],
+        isError: true,
+        code: -32602
+      };
+    }
+
+    // Get stored expiry date from beneficiary record
     const storedExpiryDate = new Date(beneficiary.idCard.expiryDate);
+    
+    // Check if the provided expiry date matches the stored expiry date
+    // Normalize both dates to YYYY-MM-DD format for comparison
+    const providedDateStr = providedExpiryDate.toISOString().split('T')[0];
+    const storedDateStr = storedExpiryDate.toISOString().split('T')[0];
+    
+    // Also check if the provided date components match the stored date
+    const providedYear = providedExpiryDate.getFullYear();
+    const providedMonth = providedExpiryDate.getMonth() + 1; // getMonth() is 0-indexed
+    const providedDay = providedExpiryDate.getDate();
+    
+    const storedYear = storedExpiryDate.getFullYear();
+    const storedMonth = storedExpiryDate.getMonth() + 1;
+    const storedDay = storedExpiryDate.getDate();
+    
+    if (providedYear !== storedYear || providedMonth !== storedMonth || providedDay !== storedDay) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 400,
+              message: 'Identity verification failed: Expiry date does not match',
+              data: {
+                verified: false,
+                reason: 'EXPIRY_DATE_MISMATCH',
+                lastFourDigits: lastFourDigits,
+                providedExpiryDate: expiryDate,
+                storedExpiryDate: storedDateStr
+              }
+            })
+          }
+        ],
+        isError: true,
+        code: -32602
+      };
+    }
 
+    // Check if the Emirates ID is expired
+    const currentDate = new Date();
     if (storedExpiryDate < currentDate) {
       return {
         content: [
@@ -86,7 +179,7 @@ export async function verifyIdentity(params) {
                 verified: false,
                 reason: 'EXPIRED_ID',
                 lastFourDigits: lastFourDigits,
-                expiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0]
+                expiryDate: storedDateStr
               }
             })
           }
@@ -115,7 +208,8 @@ export async function verifyIdentity(params) {
                 accountNumber: beneficiary.accountNumber
               },
               lastFourDigits: lastFourDigits,
-              expiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0]
+              providedExpiryDate: expiryDate,
+              storedExpiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0]
             }
           })
         }

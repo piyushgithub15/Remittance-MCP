@@ -200,7 +200,7 @@ class RemittanceMCPServer {
           },
           {
             name: 'verifyIdentity',
-            description: 'Verify customer identity using last four digits of Emirates ID (expiry date from beneficiary record)',
+            description: 'Verify customer identity using last four digits of Emirates ID and expiry date',
             inputSchema: {
               type: 'object',
               properties: {
@@ -209,12 +209,17 @@ class RemittanceMCPServer {
                   pattern: '^\\d{4}$',
                   description: 'Last 4 digits of Emirates ID (e.g., 1234)',
                 },
+                expiryDate: {
+                  type: 'string',
+                  pattern: '^\\d{2}/\\d{2}/\\d{4}$',
+                  description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
+                },
                 beneficiaryId: {
                   type: 'string',
                   description: 'Optional beneficiary ID to verify against',
                 },
               },
-              required: ['lastFourDigits'],
+              required: ['lastFourDigits', 'expiryDate'],
             },
           },
           {
