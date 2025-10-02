@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
+import { checkVerificationRequired } from '../utils/verificationStore.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -88,6 +89,30 @@ export async function refreshStatus(params) {
 
     const { orderNo } = validation.data;
 
+    // Check general verification status for refresh operations
+    const generalVerificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'refresh_status');
+    if (generalVerificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Identity verification required for status refresh',
+              data: {
+                orderNo: orderNo,
+                requiresVerification: true,
+                reason: generalVerificationCheck.status.reason,
+                message: 'For security reasons, I need to verify your identity before refreshing the status. Please provide the last 4 digits of your Emirates ID and expiry date.',
+                verificationPrompt: generalVerificationCheck.verificationPrompt
+              }
+            })
+          }
+        ],
+        isError: true
+      };
+    }
+
     // Find the order
     const order = await RemittanceOrder.findOne({ 
       orderNo,
@@ -110,12 +135,45 @@ export async function refreshStatus(params) {
       };
     }
 
+    // Check verification status for delayed transactions
+    const transactionTime = new Date(order.date);
+    const currentTime = new Date();
+    const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
+    const DELAY_THRESHOLD_MINUTES = 10; // Same threshold as transaction query
+    const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
+
+    // If transaction is delayed and pending, check verification status
+    if (isDelayed && order.status?.toUpperCase() === 'PENDING') {
+      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
+      if (verificationCheck.requiresVerification) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                code: 401,
+                message: 'Identity verification required for delayed transactions',
+                data: {
+                  orderNo: order.orderNo,
+                  isDelayed: true,
+                  requiresVerification: true,
+                  reason: verificationCheck.status.reason,
+                  message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
+                  verificationPrompt: verificationCheck.verificationPrompt
+                }
+              })
+            }
+          ],
+          isError: true
+        };
+      }
+    }
+
     // Check if the order is in completed status
     if (order.status?.toUpperCase() !== 'COMPLETED') {
       // For pending orders, return minimal details
       if (order.status?.toUpperCase() === 'PENDING') {
         // Calculate expected delivery date for pending orders
-        const transactionTime = new Date(order.date);
         const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
         const expectedDeliveryDate = expectedArrivalTime.toLocaleString('en-US', {
           timeZone: 'Asia/Dubai',
@@ -261,6 +319,17 @@ export async function refreshStatus(params) {
  */
 export async function checkRefreshNeeded(orderNo) {
   try {
+    // Check verification status for refresh operations
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'check_refresh');
+    if (verificationCheck.requiresVerification) {
+      return {
+        needsRefresh: false,
+        message: 'Verification required',
+        requiresVerification: true,
+        verificationPrompt: verificationCheck.verificationPrompt
+      };
+    }
+
     const order = await RemittanceOrder.findOne({ 
       orderNo,
       userId: DEFAULT_USER_ID 
