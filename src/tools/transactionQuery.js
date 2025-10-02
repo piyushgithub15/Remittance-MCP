@@ -39,31 +39,6 @@ const DELAY_THRESHOLD_MINUTES = 10;
  */
 export async function transactionQuery(params) {
   try {
-    // Check verification status first
-    const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'transaction_query');
-    if (verificationCheck.requiresVerification) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 401,
-              message: 'Identity verification required for transaction queries',
-              data: {
-                verified: false,
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: verificationCheck.message,
-                verificationPrompt: verificationCheck.verificationPrompt,
-                action: 'transaction_query'
-              }
-            })
-          }
-        ],
-        isError: true
-      };
-    }
-
     // Validate input parameters
     const validation = transactionQuerySchema.safeParse(params);
     if (!validation.success) {
@@ -141,26 +116,31 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
   // Check if transaction is delayed
   const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
-  // If transaction is delayed, request verification first
+  // If transaction is delayed, check verification status
   if (isDelayed && order.status === 'PENDING') {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: JSON.stringify({
-            code: 401,
-            message: 'Identity verification required for delayed transactions',
-            data: {
-              orderNo: order.orderNo,
-              isDelayed: true,
-              requiresVerification: true,
-              message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID.'
-            }
-          })
-        }
-      ],
-      isError: true
-    };
+    const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
+    if (verificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Identity verification required for delayed transactions',
+              data: {
+                orderNo: order.orderNo,
+                isDelayed: true,
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
+                verificationPrompt: verificationCheck.verificationPrompt
+              }
+            })
+          }
+        ],
+        isError: true
+      };
+    }
   }
 
   // Calculate expected arrival time based on transfer mode and country
@@ -271,26 +251,31 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
     const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
     
-    // If the single order is delayed and pending, return verification error
+    // If the single order is delayed and pending, check verification status
     if (isDelayed && order.status === 'PENDING') {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 401,
-              message: 'Identity verification required for delayed transactions',
-              data: {
-                orderNo: order.orderNo,
-                isDelayed: true,
-                requiresVerification: true,
-                message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID.'
-              }
-            })
-          }
-        ],
-        isError: true
-      };
+      const verificationCheck = checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
+      if (verificationCheck.requiresVerification) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                code: 401,
+                message: 'Identity verification required for delayed transactions',
+                data: {
+                  orderNo: order.orderNo,
+                  isDelayed: true,
+                  requiresVerification: true,
+                  reason: verificationCheck.status.reason,
+                  message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
+                  verificationPrompt: verificationCheck.verificationPrompt
+                }
+              })
+            }
+          ],
+          isError: true
+        };
+      }
     }
   }
 
