@@ -24,10 +24,6 @@ export const CUSTOMER_SATISFACTION = {
   UNSATISFIED: 'unsatisfied',
 };
 
-// Email Type - Only the 3 types actually used
-export const EMAIL_TYPE = {
-  BANK_DETAILS_SUBMISSION: 'bank_details_submission',
-};
 
 // Dispute Type - Only the 3 types actually used
 export const DISPUTE_TYPE = {
@@ -90,7 +86,6 @@ export const DOCUMENT_TYPE = {
 export const TRANSACTION_STATUS_VALUES = Object.values(TRANSACTION_STATUS);
 export const TRANSFER_MODE_VALUES = Object.values(TRANSFER_MODE);
 export const CUSTOMER_SATISFACTION_VALUES = Object.values(CUSTOMER_SATISFACTION);
-export const EMAIL_TYPE_VALUES = Object.values(EMAIL_TYPE);
 export const DISPUTE_TYPE_VALUES = Object.values(DISPUTE_TYPE);
 export const CALLBACK_PROVIDER_VALUES = Object.values(CALLBACK_PROVIDER);
 export const COMMUNICATION_CHANNEL_VALUES = Object.values(COMMUNICATION_CHANNEL);

@@ -25,7 +25,6 @@ import {
 // Import route handlers
 import transactionStatusRouter from './routes/transactionStatus.js';
 import aiAgentRouter from './routes/aiAgent.js';
-import emailWorkflowRouter from './routes/emailWorkflow.js';
 import voiceWorkflowRouter from './routes/voiceWorkflow.js';
 
 const app = express();
@@ -88,8 +87,6 @@ app.use('/api/transaction', transactionStatusRouter);
 // Use AI Agent routes
 app.use('/api/ai-agent', aiAgentRouter);
 
-// Use Email Workflow routes
-app.use('/api/email', emailWorkflowRouter);
 
 // Use Voice Workflow routes
 app.use('/api/voice', voiceWorkflowRouter);

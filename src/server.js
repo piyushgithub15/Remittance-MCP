@@ -20,7 +20,6 @@ import { transferMoney } from './tools/transferMoney.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
 import { verifyIdentity } from './tools/verifyIdentity.js';
 import { transactionQuery } from './tools/transactionQuery.js';
-import { sendCustomerEmail } from './tools/emailService.js';
 import { refreshStatus } from './tools/refreshStatus.js';
 import { checkVerificationStatusTool } from './tools/checkVerificationStatus.js';
 import { generateJWTToken } from './utils/jwt.js';
@@ -36,7 +35,6 @@ import {
 } from './utils/validation.js';
 import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionQuerySchema } from './tools/transactionQuery.js';
-import { emailServiceSchema } from './tools/emailService.js';
 import { refreshStatusSchema } from './tools/refreshStatus.js';
 import { checkVerificationStatusSchema } from './tools/checkVerificationStatus.js';
 
@@ -285,38 +283,6 @@ class RemittanceMCPServer {
             },
           },
           {
-            name: 'sendCustomerEmail',
-            description: 'Send email to customer with bank details submission link or status updates',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                customerEmail: {
-                  type: 'string',
-                  format: 'email',
-                  description: 'Customer email address',
-                },
-                orderNo: {
-                  type: 'string',
-                  description: 'Order number',
-                },
-                emailType: {
-                  type: 'string',
-                  enum: ['bank_details_submission', 'status_update', 'dispute_resolution'],
-                  description: 'Type of email to send',
-                },
-                customerName: {
-                  type: 'string',
-                  description: 'Customer name',
-                },
-                additionalMessage: {
-                  type: 'string',
-                  description: 'Additional message to include',
-                },
-              },
-              required: ['customerEmail', 'orderNo'],
-            },
-          },
-          {
             name: 'refreshStatus',
             description: 'Refresh transaction status by updating status with actual_status. Used when a user complains about a completed transaction to reveal the true status (SUCCESS or FAILED).',
             inputSchema: {
@@ -394,14 +360,6 @@ class RemittanceMCPServer {
             }
             
             return await transactionQuery(transactionValidation.data);
-          case 'sendCustomerEmail':
-            // Validate using Zod schema
-            const emailValidation = validateWithZod(emailServiceSchema, args);
-            if (!emailValidation.success) {
-              return createErrorResponse(emailValidation.error);
-            }
-            
-            return await sendCustomerEmail(emailValidation.data);
           case 'refreshStatus':
             // Validate using Zod schema
             const refreshValidation = validateWithZod(refreshStatusSchema, args);
@@ -571,17 +529,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
           });
         }
         result = await transactionQuery(transactionValidation.data);
-        break;
-      case 'sendCustomerEmail':
-        // Validate using Zod schema
-        const emailValidation = validateWithZod(emailServiceSchema, params);
-        if (!emailValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${emailValidation.error}`
-          });
-        }
-        result = await sendCustomerEmail(emailValidation.data);
         break;
       case 'refreshStatus':
         // Validate using Zod schema
