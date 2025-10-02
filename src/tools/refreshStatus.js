@@ -4,6 +4,58 @@ import RemittanceOrder from '../models/RemittanceOrder.js';
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
 
+/**
+ * Calculate expected arrival time based on transfer mode and country
+ * @param {Object} order - Remittance order object
+ * @param {Date} transactionTime - When the transaction was made
+ * @returns {Date} Expected arrival time
+ */
+function calculateExpectedArrivalTime(order, transactionTime) {
+  const baseTime = new Date(transactionTime);
+  
+  // Different processing times based on transfer mode and country
+  let processingHours = 2; // Default 2 hours
+  
+  switch (order.transferMode) {
+    case 'BANK_TRANSFER':
+      // Bank transfers typically take 1-4 hours for most countries
+      if (['AE', 'SA', 'KW', 'QA', 'BH', 'OM'].includes(order.country)) {
+        processingHours = 1; // GCC countries are faster
+      } else if (['IN', 'PK', 'BD', 'LK'].includes(order.country)) {
+        processingHours = 2; // South Asian countries
+      } else if (['US', 'CA', 'GB', 'AU'].includes(order.country)) {
+        processingHours = 4; // Western countries
+      } else {
+        processingHours = 6; // Other countries
+      }
+      break;
+      
+    case 'CASH_PICK_UP':
+      processingHours = 0.5; // Cash pickups are usually instant to 30 minutes
+      break;
+      
+    case 'MOBILE_WALLET':
+      processingHours = 0.25; // Mobile wallets are usually instant to 15 minutes
+      break;
+      
+    case 'UPI':
+      processingHours = 0.1; // UPI is usually instant to 5 minutes
+      break;
+  }
+
+  // Add processing time
+  const expectedTime = new Date(baseTime.getTime() + (processingHours * 60 * 60 * 1000));
+  
+  // Adjust for weekends and holidays (simplified logic)
+  const dayOfWeek = expectedTime.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
+    // Add 1-2 days for weekend processing
+    expectedTime.setDate(expectedTime.getDate() + (dayOfWeek === 0 ? 1 : 2));
+  }
+  
+  return expectedTime;
+}
+
 // Validation schema for refresh status parameters
 export const refreshStatusSchema = z.object({
   orderNo: z.string().min(1, 'orderNo must be provided')
@@ -62,6 +114,19 @@ export async function refreshStatus(params) {
     if (order.status?.toUpperCase() !== 'COMPLETED') {
       // For pending orders, return minimal details
       if (order.status?.toUpperCase() === 'PENDING') {
+        // Calculate expected delivery date for pending orders
+        const transactionTime = new Date(order.date);
+        const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
+        const expectedDeliveryDate = expectedArrivalTime.toLocaleString('en-US', {
+          timeZone: 'Asia/Dubai',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        });
+
         return {
           content: [
             {
@@ -77,6 +142,7 @@ export async function refreshStatus(params) {
                   country: order.country,
                   currency: order.currency,
                   fromAmount: order.fromAmount?.toString(),
+                  expectedDeliveryDate: expectedDeliveryDate,
                   message: 'Order is still processing. Full details available after completion.'
                 }
               })

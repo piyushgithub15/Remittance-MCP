@@ -149,6 +149,17 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
   // Generate timeframe message
   const timeframeMessage = generateTimeframeMessage(order, timeElapsedMinutes, expectedArrivalTime, isDelayed);
 
+  // Format expected delivery date with hour and minute
+  const expectedDeliveryDate = expectedArrivalTime.toLocaleString('en-US', {
+    timeZone: 'Asia/Dubai',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+
   const response = {
     code: 200,
     message: 'Success',
@@ -157,10 +168,19 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
         orderNo: order.orderNo,
         status: order.status,
         actual_status: order.actual_status,
-        transactionTime: transactionTime.toLocaleString('en-US', { timeZone: 'Asia/Dubai' }),
+        transactionTime: transactionTime.toLocaleString('en-US', { 
+          timeZone: 'Asia/Dubai',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true
+        }),
         timeElapsedMinutes: timeElapsedMinutes,
         isDelayed: isDelayed,
         expectedArrivalTime: expectedArrivalTime,
+        expectedDeliveryDate: expectedDeliveryDate,
         timeframeMessage: timeframeMessage,
         transferMode: order.transferMode,
         country: order.country,
@@ -246,7 +266,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
 
   const orderList = orders.map(order => {
     // For multiple orders, return minimal details without timeframe
-    return {
+    const baseOrder = {
       orderNo: order.orderNo,
       status: order.status,
       actual_status: order.actual_status,
@@ -258,6 +278,25 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
       dateDesc: order.dateDesc,
       failReason: order.failReason
     };
+
+    // Add expected delivery date for pending orders
+    if (order.status?.toUpperCase() === 'PENDING') {
+      const transactionTime = new Date(order.date);
+      const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
+      const expectedDeliveryDate = expectedArrivalTime.toLocaleString('en-US', {
+        timeZone: 'Asia/Dubai',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      baseOrder.expectedDeliveryDate = expectedDeliveryDate;
+    }
+
+    return baseOrder;
   });
 
   return {
@@ -353,7 +392,8 @@ function generateTimeframeMessage(order, timeElapsedMinutes, expectedArrivalTime
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   });
 
   if (isDelayed) {
