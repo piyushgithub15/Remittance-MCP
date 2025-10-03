@@ -111,14 +111,14 @@ export async function refreshStatus(params) {
       };
     }
 
-    // Check verification status for delayed transactions
+    // Check verification status for all transactions (delayed or completed)
     const transactionTime = new Date(order.date);
     const currentTime = new Date();
     const timeElapsedMinutes = Math.floor((currentTime - transactionTime) / (1000 * 60));
     const DELAY_THRESHOLD_MINUTES = 10; // Same threshold as transaction query
     const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
-    // If transaction is delayed and pending, check verification status
+    // Check verification status for delayed transactions
     if (isDelayed && order.status?.toUpperCase() === 'PENDING') {
       const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
       if (verificationCheck.requiresVerification) {
@@ -135,6 +135,34 @@ export async function refreshStatus(params) {
                   requiresVerification: true,
                   reason: verificationCheck.status.reason,
                   message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
+                  verificationPrompt: verificationCheck.verificationPrompt
+                }
+              })
+            }
+          ],
+          isError: true
+        };
+      }
+    }
+
+    // Check verification status for completed transactions as well
+    if (order.status?.toUpperCase() === 'COMPLETED') {
+      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'completed_transaction');
+      if (verificationCheck.requiresVerification) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                code: 401,
+                message: 'Identity verification required for completed transactions',
+                data: {
+                  orderNo: order.orderNo,
+                  status: order.status,
+                  actualStatus: order.actual_status,
+                  requiresVerification: true,
+                  reason: verificationCheck.status.reason,
+                  message: 'For security reasons, I need to verify your identity before providing detailed information about this completed transaction. Please provide the last 4 digits of your Emirates ID and expiry date.',
                   verificationPrompt: verificationCheck.verificationPrompt
                 }
               })
