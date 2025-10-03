@@ -89,31 +89,7 @@ export async function refreshStatus(params) {
 
     const { orderNo } = validation.data;
 
-    // Check general verification status for refresh operations
-    const generalVerificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'refresh_status');
-    if (generalVerificationCheck.requiresVerification) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 401,
-              message: 'Identity verification required for status refresh',
-              data: {
-                orderNo: orderNo,
-                requiresVerification: true,
-                reason: generalVerificationCheck.status.reason,
-                message: 'For security reasons, I need to verify your identity before refreshing the status. Please provide the last 4 digits of your Emirates ID and expiry date.',
-                verificationPrompt: generalVerificationCheck.verificationPrompt
-              }
-            })
-          }
-        ],
-        isError: true
-      };
-    }
 
-    // Find the order
     const order = await RemittanceOrder.findOne({ 
       orderNo,
       userId: DEFAULT_USER_ID 
