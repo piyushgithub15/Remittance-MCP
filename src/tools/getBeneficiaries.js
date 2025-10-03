@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
 import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
+import { checkVerificationRequired } from '../utils/verificationStore.js';
 
 // Validation schema for getBeneficiaries parameters
 export const getBeneficiariesSchema = z.object({
@@ -38,6 +39,29 @@ export async function getBeneficiaries(params) {
         ],
         isError: true,
         code: -32602
+      };
+    }
+
+    // Check verification
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'beneficiaries');
+    if (verificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Verification required',
+              data: {
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: verificationCheck.message,
+                verificationPrompt: verificationCheck.verificationPrompt
+              }
+            })
+          }
+        ],
+        isError: true
       };
     }
 
@@ -88,30 +112,14 @@ export async function getBeneficiaries(params) {
     // Format response
     const response = {
       code: 200,
-      message: 'Success',
+      message: 'OK',
       data: beneficiaries.map(beneficiary => ({
-        beneficiaryId: beneficiary.id,
-        title: beneficiary.title,
+        id: beneficiary.id,
         name: beneficiary.name,
         currency: beneficiary.currency,
-        icon: beneficiary.icon,
-        country: beneficiary.country,
-        transferModes: beneficiary.transferModes,
-        accountNumber: beneficiary.accountNumber,
-        bankName: beneficiary.bankName,
-        bankCode: beneficiary.bankCode,
-        branchCode: beneficiary.branchCode,
-        swiftCode: beneficiary.swiftCode,
-        createdAt: beneficiary.createdAt,
-        updatedAt: beneficiary.updatedAt
+        country: beneficiary.country
       })),
-      total: beneficiaries.length,
-      filters: {
-        country: country || null,
-        currency: currency || null,
-        transferMode: transferMode || null,
-        isActive: isActive
-      }
+      total: beneficiaries.length
     };
 
     return {

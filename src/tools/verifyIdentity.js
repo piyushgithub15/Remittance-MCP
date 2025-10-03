@@ -62,11 +62,9 @@ export async function verifyIdentity(params) {
             type: 'text',
             text: JSON.stringify({
               code: 404,
-              message: 'Identity verification failed: No matching beneficiary found',
+              message: 'No match found',
               data: {
-                verified: false,
-                reason: 'NO_MATCH',
-                lastFourDigits: lastFourDigits
+                verified: false
               }
             })
           }
@@ -82,12 +80,9 @@ export async function verifyIdentity(params) {
             type: 'text',
             text: JSON.stringify({
               code: 400,
-              message: 'Identity verification failed: Multiple beneficiaries found with same last 4 digits',
+              message: 'Multiple matches found',
               data: {
-                verified: false,
-                reason: 'MULTIPLE_MATCHES',
-                lastFourDigits: lastFourDigits,
-                matchCount: beneficiaries.length
+                verified: false
               }
             })
           }
@@ -205,24 +200,12 @@ export async function verifyIdentity(params) {
           type: 'text',
           text: JSON.stringify({
             code: 200,
-            message: 'Identity verified successfully',
+            message: 'OK',
             data: {
               verified: true,
               beneficiary: {
                 id: beneficiary.id,
-                name: beneficiary.name,
-                country: beneficiary.country,
-                currency: beneficiary.currency,
-                bankName: beneficiary.bankName,
-                accountNumber: beneficiary.accountNumber
-              },
-              lastFourDigits: lastFourDigits,
-              providedExpiryDate: expiryDate,
-              storedExpiryDate: beneficiary.idCard.expiryDate.toISOString().split('T')[0],
-              verification: {
-                verifiedAt: verificationRecord.verifiedAt.toISOString(),
-                expiresAt: verificationRecord.expiresAt.toISOString(),
-                timeRemaining: Math.floor((verificationRecord.expiresAt.getTime() - new Date().getTime()) / 1000)
+                name: beneficiary.name
               }
             }
           })

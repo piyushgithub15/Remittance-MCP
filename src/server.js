@@ -223,24 +223,6 @@ class RemittanceMCPServer {
             },
           },
           {
-            name: 'getTransactionTimeframe',
-            description: 'Get transaction timeframe and expected arrival time for a specific order',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                orderNo: {
-                  type: 'string',
-                  description: 'Order number to check timeframe for',
-                },
-                includeDelayInfo: {
-                  type: 'boolean',
-                  description: 'Whether to include detailed delay information',
-                },
-              },
-              required: ['orderNo'],
-            },
-          },
-          {
             name: 'transactionQuery',
             description: 'Query transaction history or check specific transaction timeframe and delays. If orderNo is provided, returns specific order details. Otherwise returns filtered list of orders.',
             inputSchema: {

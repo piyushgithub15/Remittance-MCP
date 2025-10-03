@@ -87,6 +87,29 @@ export async function refreshStatus(params) {
       };
     }
 
+    // Check verification
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'refresh');
+    if (verificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Verification required',
+              data: {
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: verificationCheck.message,
+                verificationPrompt: verificationCheck.verificationPrompt
+              }
+            })
+          }
+        ],
+        isError: true
+      };
+    }
+
     const { orderNo } = validation.data;
 
 
@@ -118,60 +141,9 @@ export async function refreshStatus(params) {
     const DELAY_THRESHOLD_MINUTES = 10; // Same threshold as transaction query
     const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
-    // Check verification status for delayed transactions
-    if (isDelayed && order.status?.toUpperCase() === 'PENDING') {
-      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
-      if (verificationCheck.requiresVerification) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                code: 401,
-                message: 'Identity verification required for delayed transactions',
-                data: {
-                  orderNo: order.orderNo,
-                  isDelayed: true,
-                  requiresVerification: true,
-                  reason: verificationCheck.status.reason,
-                  message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
-                  verificationPrompt: verificationCheck.verificationPrompt
-                }
-              })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
+
 
     // Check verification status for completed transactions as well
-    if (order.status?.toUpperCase() === 'COMPLETED') {
-      const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'completed_transaction');
-      if (verificationCheck.requiresVerification) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                code: 401,
-                message: 'Identity verification required for completed transactions',
-                data: {
-                  orderNo: order.orderNo,
-                  status: order.status,
-                  actualStatus: order.actual_status,
-                  requiresVerification: true,
-                  reason: verificationCheck.status.reason,
-                  message: 'For security reasons, I need to verify your identity before providing detailed information about this completed transaction. Please provide the last 4 digits of your Emirates ID and expiry date.',
-                  verificationPrompt: verificationCheck.verificationPrompt
-                }
-              })
-            }
-          ],
-          isError: true
-        };
-      }
-    }
 
     // Check if the order is in completed status
     if (order.status?.toUpperCase() !== 'COMPLETED') {
@@ -195,17 +167,11 @@ export async function refreshStatus(params) {
               type: 'text',
               text: JSON.stringify({
                 code: 200,
-                message: 'Order is pending - minimal details only',
+                message: 'OK',
                 data: {
                   orderNo: order.orderNo,
                   status: order.status,
-                  actualStatus: order.actual_status,
-                  transferMode: order.transferMode,
-                  country: order.country,
-                  currency: order.currency,
-                  fromAmount: order.fromAmount?.toString(),
-                  expectedDeliveryDate: expectedDeliveryDate,
-                  message: 'Order is still processing. Full details available after completion.'
+                  amount: order.fromAmount
                 }
               })
             }
@@ -223,9 +189,8 @@ export async function refreshStatus(params) {
               message: 'Order is not in completed status',
               data: {
                 orderNo: order.orderNo,
-                currentStatus: order.status,
-                actualStatus: order.actual_status,
-                message: 'This order is not yet completed, so no refresh is needed.'
+                status: order.status,
+                message: 'Order not completed yet'
               }
             })
           }
@@ -278,16 +243,10 @@ export async function refreshStatus(params) {
 
     const response = {
       code: 200,
-      message: 'Status refreshed successfully',
+      message: 'OK',
       data: {
         orderNo: updatedOrder.orderNo,
-        previousStatus: 'COMPLETED',
-        newStatus: updatedOrder.status,
-        actualStatus: updatedOrder.actual_status,
-        statusMessage: statusMessage,
-        failReason: updatedOrder.failReason,
-        refreshedAt: new Date().toISOString(),
-        message: 'The transaction status has been updated to reflect the actual status.'
+        status: updatedOrder.status
       }
     };
 
@@ -351,11 +310,10 @@ export async function checkRefreshNeeded(orderNo) {
 
     return {
       needsRefresh,
-      currentStatus: order.status,
-      actualStatus: order.actual_status,
+      status: order.status,
       message: needsRefresh ? 
-        'Order is completed but status needs refresh to show actual result' :
-        'Order does not need status refresh'
+        'Order needs refresh' :
+        'No refresh needed'
     };
 
   } catch (error) {

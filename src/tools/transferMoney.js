@@ -5,6 +5,7 @@ import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { CALLBACK_PROVIDER_VALUES } from '../constants/enums.js';
+import { checkVerificationRequired } from '../utils/verificationStore.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -36,6 +37,29 @@ const FEE_STRUCTURE = {
  */
 export async function transferMoney(params) {
   try {
+    // Check verification for all operations
+    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'transfer');
+    if (verificationCheck.requiresVerification) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              code: 401,
+              message: 'Verification required',
+              data: {
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: verificationCheck.message,
+                verificationPrompt: verificationCheck.verificationPrompt
+              }
+            })
+          }
+        ],
+        isError: true
+      };
+    }
+
     const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider } = params;
 
     // Stage 1: Discovery call (no beneficiaryId, beneficiaryName, or sendAmount)
@@ -49,7 +73,7 @@ export async function transferMoney(params) {
         content: [
           {
             type: 'text',
-            text: 'Transfer money failed: beneficiaryName and sendAmount are required.'
+            text: 'Missing required fields'
           }
         ],
         isError: true,
@@ -60,12 +84,12 @@ export async function transferMoney(params) {
     return await handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider);
 
   } catch (error) {
-    console.error('Transfer money failed');
+    console.error('Transfer failed');
     return {
       content: [
         {
           type: 'text',
-          text: 'Transfer failed'
+          text: 'Failed'
         }
       ],
       isError: true,
@@ -102,69 +126,18 @@ async function handleDiscoveryStage() {
 
     const response = {
       code: 200,
-      message: 'Success',
+      message: 'OK',
       beneficiaries: beneficiaries.map(b => ({
         id: b.id,
-        title: b.title,
         name: b.name,
-        currency: b.currency,
-        icon: b.icon
+        currency: b.currency
       })),
-      sendAmounts: suggestedAmounts.map((sa, index) => ({
-        id: index + 1,
-        amount: sa.amount
-      })),
-      remToken: null,
+      sendAmounts: suggestedAmounts.map(sa => sa.amount),
       exchangeRate: defaultExchangeRate ? {
-        fromAmount: {
-          currency: defaultExchangeRate.fromCurrency,
-          amount: 1000.00
-        },
-        fromIconUrl: defaultExchangeRate.fromCurrencyIcon,
-        fromCountryName: defaultExchangeRate.fromCountryName,
-        rate: defaultExchangeRate.rate.toString(),
-        toAmount: {
-          currency: defaultExchangeRate.toCurrency,
-          amount: 1000.00 * defaultExchangeRate.rate
-        },
-        toIconUrl: defaultExchangeRate.toCurrencyIcon,
-        toCountryName: defaultExchangeRate.toCountryName,
-        fee: {
-          currency: 'AED',
-          amount: 10.00
-        },
-        feeItems: [
-          {
-            name: 'Service Fee',
-            feeAmount: {
-              currency: 'AED',
-              amount: 10.00
-            }
-          }
-        ],
-        orderAmount: {
-          currency: 'AED',
-          amount: 1010.00
-        },
-        channelCode: 'BANK_TRANSFER',
-        transactionMode: 'BANK_TRANSFER'
-      } : null,
-      description: 'Please select a beneficiary and amount to proceed with the transfer.',
-      priceTitle: 'Transfer Details',
-      callBackProviders: [
-        {
-          type: 'voice',
-          url: getCallbackConfig('voice').url,
-          token: getCallbackConfig('voice').token,
-          description: 'Voice-based confirmation callbacks'
-        },
-        {
-          type: 'text',
-          url: getCallbackConfig('text').url,
-          token: getCallbackConfig('text').token,
-          description: 'Text-based confirmation callbacks'
-        }
-      ]
+        rate: defaultExchangeRate.rate,
+        fromCurrency: defaultExchangeRate.fromCurrency,
+        toCurrency: defaultExchangeRate.toCurrency
+      } : null
     };
 
     return {
@@ -326,35 +299,12 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
 
     const response = {
       code: 200,
-      message: 'Transfer initiated successfully',
+      message: 'Transfer initiated',
       orderNo: orderNo,
-      button: {
-        title: 'Complete Payment',
-        link: paymentLink
-      },
       paymentLink: paymentLink,
-      callBackProvider: callBackProvider,
-      callBackUrl: callbackConfig.url,
-      callBackToken: callbackConfig.token,
-      transactionDetails: {
-        beneficiary: {
-          id: beneficiary.id,
-          title: beneficiary.title,
-          name: beneficiary.name,
-          currency: beneficiary.currency,
-          icon: beneficiary.icon,
-          country: beneficiary.country,
-          transferModes: beneficiary.transferModes,
-          accountNumber: beneficiary.accountNumber,
-          bankName: beneficiary.bankName
-        },
-        sendAmount: sendAmount,
-        fee: fee,
-        totalAmount: totalAmount,
-        receivedAmount: receivedAmount,
-        exchangeRate: exchangeRate,
-        currency: beneficiary.currency
-      }
+      amount: sendAmount,
+      fee: fee,
+      total: totalAmount
     };
 
     return {

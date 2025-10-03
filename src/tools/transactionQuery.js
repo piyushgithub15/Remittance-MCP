@@ -56,21 +56,44 @@ export async function transactionQuery(params) {
 
     const { orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo } = validation.data;
 
-    // If orderNo is provided, check specific order timeframe
-    if (orderNo) {
-      return await handleSpecificOrderQuery(orderNo, includeDelayInfo);
-    } else {
-      // Otherwise, return list of orders with timeframe info
-      return await handleOrderListQuery(transferMode, country, currency, orderDate, orderCount);
-    }
-
-  } catch (error) {
-    console.error('Transaction query failed');
+  // Check verification for all operations
+  const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'transaction');
+  if (verificationCheck.requiresVerification) {
     return {
       content: [
         {
           type: 'text',
-          text: 'Transaction query failed'
+          text: JSON.stringify({
+            code: 401,
+            message: 'Verification required',
+            data: {
+              requiresVerification: true,
+              reason: verificationCheck.status.reason,
+              message: verificationCheck.message,
+              verificationPrompt: verificationCheck.verificationPrompt
+            }
+          })
+        }
+      ],
+      isError: true
+    };
+  }
+
+  // If orderNo is provided, check specific order timeframe
+  if (orderNo) {
+    return await handleSpecificOrderQuery(orderNo, includeDelayInfo);
+  } else {
+    // Otherwise, return list of orders with timeframe info
+    return await handleOrderListQuery(transferMode, country, currency, orderDate, orderCount);
+  }
+
+  } catch (error) {
+    console.error('Query failed');
+    return {
+      content: [
+        {
+          type: 'text',
+          text: 'Query failed'
         }
       ],
       isError: true,
@@ -99,7 +122,7 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
           type: 'text',
           text: JSON.stringify({
             code: 404,
-            message: 'Order not found',
+            message: 'Not found',
             data: null
           })
         }
@@ -107,7 +130,6 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
       isError: true
     };
   }
-
   // Calculate time elapsed since transaction
   const transactionTime = new Date(order.date);
   const currentTime = new Date();
@@ -116,32 +138,6 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
   // Check if transaction is delayed
   const isDelayed = timeElapsedMinutes > DELAY_THRESHOLD_MINUTES;
 
-  // If transaction is delayed, check verification status
-  if (isDelayed && order.status?.toUpperCase() === 'PENDING') {
-    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'delayed_transaction');
-    if (verificationCheck.requiresVerification) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              code: 401,
-              message: 'Identity verification required for delayed transactions',
-              data: {
-                orderNo: order.orderNo,
-                isDelayed: true,
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: 'Your transaction appears to be delayed. For security reasons, I need to verify your identity before providing detailed information. Please provide the last 4 digits of your Emirates ID and expiry date.',
-                verificationPrompt: verificationCheck.verificationPrompt
-              }
-            })
-          }
-        ],
-        isError: true
-      };
-    }
-  }
 
   // Calculate expected arrival time based on transfer mode and country
   const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
@@ -162,50 +158,21 @@ async function handleSpecificOrderQuery(orderNo, includeDelayInfo) {
 
   const response = {
     code: 200,
-    message: 'Success',
+    message: 'OK',
     data: {
-      orders: [{
-        orderNo: order.orderNo,
-        status: order.status,
-        actual_status: order.actual_status,
-        transactionTime: transactionTime.toLocaleString('en-US', { 
-          timeZone: 'Asia/Dubai',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        }),
-        timeElapsedMinutes: timeElapsedMinutes,
-        isDelayed: isDelayed,
-        expectedArrivalTime: expectedArrivalTime,
-        expectedDeliveryDate: expectedDeliveryDate,
-        timeframeMessage: timeframeMessage,
-        transferMode: order.transferMode,
-        country: order.country,
-        currency: order.currency,
-        fromAmount: order.fromAmount.toString(),
-        toAmount: order.toAmount ? order.toAmount.toString() : null,
-        dateDesc: order.dateDesc,
-        failReason: order.failReason,
-        amlHoldUrl: order.amlHoldUrl,
-        orderDetailUrl: order.orderDetailUrl
-      }],
-      totalCount: 1,
-      query: {
-        mode: 'detailed',
-        orderNo: order.orderNo,
-        includeDelayInfo: includeDelayInfo
-      }
+      orderNo: order.orderNo,
+      status: order.status,
+      amount: order.fromAmount,
+      timeElapsedMinutes: timeElapsedMinutes,
+      isDelayed: isDelayed,
+      expectedDeliveryDate: expectedDeliveryDate
     }
   };
 
   // Add delay information if requested
   if (includeDelayInfo && isDelayed) {
-    response.data.orders[0].delayInfo = {
+    response.data.delayInfo = {
       delayMinutes: timeElapsedMinutes - DELAY_THRESHOLD_MINUTES,
-      delayThreshold: DELAY_THRESHOLD_MINUTES,
       possibleReasons: getDelayReasons(order)
     };
   }
@@ -264,40 +231,12 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     .select('orderNo fromAmount toAmount status dateDesc date failReason amlHoldUrl orderDetailUrl transferMode country currency');
 
 
-  const orderList = orders.map(order => {
-    // For multiple orders, return minimal details without timeframe
-    const baseOrder = {
-      orderNo: order.orderNo,
-      status: order.status,
-      actual_status: order.actual_status,
-      transferMode: order.transferMode,
-      country: order.country,
-      currency: order.currency,
-      fromAmount: order.fromAmount.toString(),
-      toAmount: order.toAmount ? order.toAmount.toString() : null,
-      dateDesc: order.dateDesc,
-      failReason: order.failReason
-    };
-
-    // Add expected delivery date for pending orders
-    if (order.status?.toUpperCase() === 'PENDING') {
-      const transactionTime = new Date(order.date);
-      const expectedArrivalTime = calculateExpectedArrivalTime(order, transactionTime);
-      const expectedDeliveryDate = expectedArrivalTime.toLocaleString('en-US', {
-        timeZone: 'Asia/Dubai',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-      
-      baseOrder.expectedDeliveryDate = expectedDeliveryDate;
-    }
-
-    return baseOrder;
-  });
+  const orderList = orders.map(order => ({
+    orderNo: order.orderNo,
+    status: order.status,
+    amount: order.fromAmount,
+    date: order.dateDesc
+  }));
 
   return {
     content: [
@@ -305,18 +244,10 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
         type: 'text',
         text: JSON.stringify({
           code: 200,
-          message: 'Success',
+          message: 'OK',
           data: {
             orders: orderList,
-            totalCount: orderList.length,
-            query: {
-              mode: 'list_minimal',
-              transferMode: transferMode || null,
-              country: country || null,
-              currency: currency || null,
-              orderDate: orderDate || null,
-              orderCount: orderCount
-            }
+            total: orderList.length
           }
         })
       }
@@ -464,11 +395,11 @@ export async function checkTransactionDelay(orderNo) {
     };
 
   } catch (error) {
-    console.error('Check delay failed');
+    console.error('Delay check failed');
     return {
       isDelayed: false,
       delayMinutes: 0,
-      message: 'Check failed'
+      message: 'Failed'
     };
   }
 }
