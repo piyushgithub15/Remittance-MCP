@@ -50,7 +50,6 @@ export async function checkVerificationStatusTool(params) {
                 requiresVerification: true,
                 reason: verificationCheck.status.reason,
                 message: verificationCheck.message,
-                verificationPrompt: verificationCheck.verificationPrompt,
                 action: action
               }
             })

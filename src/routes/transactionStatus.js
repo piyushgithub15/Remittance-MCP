@@ -137,25 +137,9 @@ router.post('/status', async (req, res) => {
       data: {
         orderNo: order.orderNo,
         status: order.status,
-        currentTimeframe: getTimeframeByTransferMode(order.transferMode),
-        message: getStatusMessage(order, scenario),
-        deliveryInfo: {
-          expectedDelivery: calculateExpectedDelivery(order),
-          transferMode: order.transferMode,
-          beneficiaryName: order.beneficiaryName,
-          country: order.country,
-          currency: order.currency
-        },
-        transactionDetails: {
-          fromAmount: order.fromAmount,
-          feeAmount: order.feeAmount,
-          totalPayAmount: order.totalPayAmount,
-          receivedAmount: order.receivedAmount,
-          exchangeRate: order.exchangeRate
-        },
-        nextSteps: order.status?.toUpperCase() === 'SUCCESS' 
-          ? 'Please check with the beneficiary bank for final confirmation.'
-          : 'Please complete the payment to proceed with the transfer.'
+        amount: order.fromAmount,
+        fee: order.feeAmount,
+        total: order.totalPayAmount
       }
     };
 
@@ -383,38 +367,9 @@ router.post('/detailed', async (req, res) => {
       data: {
         orderNo: order.orderNo,
         status: order.status,
-        statusHistory: order.statusHistory || [],
-        deliveryInfo: {
-          expectedDelivery: calculateExpectedDelivery(order),
-          actualDelivery: order.actualDeliveryTime,
-          deliveryStatus: order.deliveryStatus || 'pending',
-          transferMode: order.transferMode
-        },
-        customerInfo: {
-          inquiryCount: order.inquiryCount || 0,
-          lastInquiry: order.lastCustomerInquiry,
-          escalationLevel: order.escalationLevel || 0
-        },
-        transactionDetails: {
-          fromAmount: order.fromAmount,
-          feeAmount: order.feeAmount,
-          totalPayAmount: order.totalPayAmount,
-          receivedAmount: order.receivedAmount,
-          exchangeRate: order.exchangeRate,
-          paymentMethod: order.paymentMethod || 'CARD'
-        },
-        beneficiaryInfo: {
-          name: order.beneficiaryName,
-          country: order.country,
-          currency: order.currency,
-          bankName: order.beneficiaryId?.bankName,
-          accountNumber: order.beneficiaryId?.accountNumber
-        },
-        timestamps: {
-          created: order.date,
-          lastUpdated: order.updatedAt,
-          bankProcessing: order.bankProcessingTime
-        }
+        amount: order.fromAmount,
+        fee: order.feeAmount,
+        total: order.totalPayAmount
       }
     };
 

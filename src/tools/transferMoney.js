@@ -50,8 +50,7 @@ export async function transferMoney(params) {
               data: {
                 requiresVerification: true,
                 reason: verificationCheck.status.reason,
-                message: verificationCheck.message,
-                verificationPrompt: verificationCheck.verificationPrompt
+                message: verificationCheck.message
               }
             })
           }

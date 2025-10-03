@@ -63,16 +63,15 @@ export async function transactionQuery(params) {
       content: [
         {
           type: 'text',
-          text: JSON.stringify({
-            code: 401,
-            message: 'Verification required',
-            data: {
-              requiresVerification: true,
-              reason: verificationCheck.status.reason,
-              message: verificationCheck.message,
-              verificationPrompt: verificationCheck.verificationPrompt
-            }
-          })
+            text: JSON.stringify({
+              code: 401,
+              message: 'Verification required',
+              data: {
+                requiresVerification: true,
+                reason: verificationCheck.status.reason,
+                message: verificationCheck.message
+              }
+            })
         }
       ],
       isError: true
