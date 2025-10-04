@@ -1,0 +1,609 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Remittance MCP API",
+    "description": "API for international remittance operations with MCP integration",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Remittance API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8070",
+      "description": "Development server"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/query-exchange-rate": {
+      "post": {
+        "summary": "Query exchange rate",
+        "description": "Get current exchange rates for international remittance",
+        "tags": ["Exchange Rates"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["toCountry", "toCurrency"],
+                "properties": {
+                  "toCountry": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Destination country code (ISO 3166)",
+                    "example": "CN"
+                  },
+                  "toCurrency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Destination currency code (ISO 4217)",
+                    "example": "CNY"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Exchange rate retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transfer-money": {
+      "post": {
+        "summary": "Transfer money",
+        "description": "Execute international money transfers with verification",
+        "tags": ["Transfers"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["lastFourDigits", "expiryDate"],
+                "properties": {
+                  "beneficiaryId": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$",
+                    "description": "Beneficiary ID (numeric string)",
+                    "example": "123"
+                  },
+                  "beneficiaryName": {
+                    "type": "string",
+                    "description": "Beneficiary name",
+                    "example": "John Smith"
+                  },
+                  "sendAmount": {
+                    "type": "number",
+                    "minimum": 0.01,
+                    "description": "Amount to send in AED",
+                    "example": 1000.50
+                  },
+                  "callBackProvider": {
+                    "type": "string",
+                    "enum": ["voice", "text"],
+                    "description": "Callback provider type",
+                    "default": "voice"
+                  },
+                  "lastFourDigits": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$",
+                    "description": "Last 4 digits of Emirates ID",
+                    "example": "1234"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "pattern": "^\\d{2}/\\d{2}/\\d{4}$",
+                    "description": "Emirates ID expiry date (DD/MM/YYYY)",
+                    "example": "25/12/2025"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transfer initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/get-beneficiaries": {
+      "post": {
+        "summary": "Get beneficiaries",
+        "description": "Retrieve user's saved beneficiaries with filtering",
+        "tags": ["Beneficiaries"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["lastFourDigits", "expiryDate"],
+                "properties": {
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Filter by country code",
+                    "example": "CN"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Filter by currency code",
+                    "example": "CNY"
+                  },
+                  "transferMode": {
+                    "type": "string",
+                    "enum": ["BANK_TRANSFER", "CASH_PICK_UP", "MOBILE_WALLET", "UPI"],
+                    "description": "Filter by transfer mode"
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Filter by active status"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 50,
+                    "description": "Maximum number of beneficiaries to return"
+                  },
+                  "lastFourDigits": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$",
+                    "description": "Last 4 digits of Emirates ID",
+                    "example": "1234"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "pattern": "^\\d{2}/\\d{2}/\\d{4}$",
+                    "description": "Emirates ID expiry date (DD/MM/YYYY)",
+                    "example": "25/12/2025"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Beneficiaries retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BeneficiariesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transaction-query": {
+      "post": {
+        "summary": "Query transactions",
+        "description": "Query transaction history or check specific transaction details",
+        "tags": ["Transactions"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["lastFourDigits", "expiryDate"],
+                "properties": {
+                  "orderNo": {
+                    "type": "string",
+                    "description": "Order number for specific order check"
+                  },
+                  "transferMode": {
+                    "type": "string",
+                    "enum": ["BANK_TRANSFER", "CASH_PICK_UP", "MOBILE_WALLET", "UPI"],
+                    "description": "Filter by transfer mode"
+                  },
+                  "country": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{2}$",
+                    "description": "Filter by country code"
+                  },
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$",
+                    "description": "Filter by currency code"
+                  },
+                  "orderDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Filter by order date (YYYY-MM-DD)"
+                  },
+                  "orderCount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Maximum number of orders to return"
+                  },
+                  "includeDelayInfo": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Include delay information"
+                  },
+                  "lastFourDigits": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$",
+                    "description": "Last 4 digits of Emirates ID",
+                    "example": "1234"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "pattern": "^\\d{2}/\\d{2}/\\d{4}$",
+                    "description": "Emirates ID expiry date (DD/MM/YYYY)",
+                    "example": "25/12/2025"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction query successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/refresh-status": {
+      "post": {
+        "summary": "Refresh transaction status",
+        "description": "Refresh transaction status to reveal actual status",
+        "tags": ["Transactions"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["orderNo", "lastFourDigits", "expiryDate"],
+                "properties": {
+                  "orderNo": {
+                    "type": "string",
+                    "description": "Order number to refresh",
+                    "example": "1234567890ABC"
+                  },
+                  "lastFourDigits": {
+                    "type": "string",
+                    "pattern": "^\\d{4}$",
+                    "description": "Last 4 digits of Emirates ID",
+                    "example": "1234"
+                  },
+                  "expiryDate": {
+                    "type": "string",
+                    "pattern": "^\\d{2}/\\d{2}/\\d{4}$",
+                    "description": "Emirates ID expiry date (DD/MM/YYYY)",
+                    "example": "25/12/2025"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerificationErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/actuator/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check API health status",
+        "tags": ["System"],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "API is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "UP"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ExchangeRateResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing exchange rate data"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "TransferResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing transfer data"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "BeneficiariesResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing beneficiaries data"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "TransactionResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing transaction data"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "RefreshResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing refresh data"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "VerificationErrorResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "example": "text"
+                },
+                "text": {
+                  "type": "string",
+                  "description": "JSON string containing verification error"
+                }
+              }
+            }
+          },
+          "isError": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Exchange Rates",
+      "description": "Exchange rate operations"
+    },
+    {
+      "name": "Transfers",
+      "description": "Money transfer operations"
+    },
+    {
+      "name": "Beneficiaries",
+      "description": "Beneficiary management"
+    },
+    {
+      "name": "Transactions",
+      "description": "Transaction queries and status"
+    },
+    {
+      "name": "System",
+      "description": "System health and status"
+    }
+  ]
+}

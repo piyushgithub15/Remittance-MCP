@@ -546,6 +546,62 @@ app.post('/callback/remittance', async (req, res) => {
   }
 });
 
+// REST API endpoints for all tools
+app.post('/api/query-exchange-rate', authenticateToken, async (req, res) => {
+  try {
+    const { toCountry, toCurrency } = req.body;
+    const result = await queryExchangeRate({ toCountry, toCurrency });
+    res.json(result);
+  } catch (error) {
+    console.error('Query exchange rate failed');
+    res.status(500).json({ error: 'Query failed' });
+  }
+});
+
+app.post('/api/transfer-money', authenticateToken, async (req, res) => {
+  try {
+    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate } = req.body;
+    const result = await transferMoney({ beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate });
+    res.json(result);
+  } catch (error) {
+    console.error('Transfer money failed');
+    res.status(500).json({ error: 'Transfer failed' });
+  }
+});
+
+app.post('/api/get-beneficiaries', authenticateToken, async (req, res) => {
+  try {
+    const { country, currency, transferMode, isActive, limit, lastFourDigits, expiryDate } = req.body;
+    const result = await getBeneficiaries({ country, currency, transferMode, isActive, limit, lastFourDigits, expiryDate });
+    res.json(result);
+  } catch (error) {
+    console.error('Get beneficiaries failed');
+    res.status(500).json({ error: 'Query failed' });
+  }
+});
+
+app.post('/api/transaction-query', authenticateToken, async (req, res) => {
+  try {
+    const { orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo, lastFourDigits, expiryDate } = req.body;
+    const result = await transactionQuery({ orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo, lastFourDigits, expiryDate });
+    res.json(result);
+  } catch (error) {
+    console.error('Transaction query failed');
+    res.status(500).json({ error: 'Query failed' });
+  }
+});
+
+app.post('/api/refresh-status', authenticateToken, async (req, res) => {
+  try {
+    const { orderNo, lastFourDigits, expiryDate } = req.body;
+    const result = await refreshStatus({ orderNo, lastFourDigits, expiryDate });
+    res.json(result);
+  } catch (error) {
+    console.error('Refresh status failed');
+    res.status(500).json({ error: 'Refresh failed' });
+  }
+});
+
 // Test endpoint to simulate payment completion
 app.post('/test/complete-payment', async (req, res) => {
   try {
@@ -611,6 +667,12 @@ function startExpressServer() {
     console.log(`Health check: http://localhost:${PORT}/actuator/health`);
     console.log(`Token generation: POST http://localhost:${PORT}/auth/token`);
     console.log(`MCP messages: POST http://localhost:${PORT}/mcp/messages`);
+    console.log(`REST APIs:`);
+    console.log(`  Query Exchange Rate: POST http://localhost:${PORT}/api/query-exchange-rate`);
+    console.log(`  Transfer Money: POST http://localhost:${PORT}/api/transfer-money`);
+    console.log(`  Get Beneficiaries: POST http://localhost:${PORT}/api/get-beneficiaries`);
+    console.log(`  Transaction Query: POST http://localhost:${PORT}/api/transaction-query`);
+    console.log(`  Refresh Status: POST http://localhost:${PORT}/api/refresh-status`);
   });
 }
 
@@ -648,6 +710,12 @@ async function startExpressServerWithMCP() {
       console.log(`MCP StreamableHTTP (Stateless): POST http://localhost:${PORT}/mcp`);
       console.log(`MCP SSE (Stateful): GET http://localhost:${PORT}/mcp/sse`);
       console.log(`MCP Session Delete: DELETE http://localhost:${PORT}/mcp/session/:sessionId`);
+      console.log(`REST APIs:`);
+      console.log(`  Query Exchange Rate: POST http://localhost:${PORT}/api/query-exchange-rate`);
+      console.log(`  Transfer Money: POST http://localhost:${PORT}/api/transfer-money`);
+      console.log(`  Get Beneficiaries: POST http://localhost:${PORT}/api/get-beneficiaries`);
+      console.log(`  Transaction Query: POST http://localhost:${PORT}/api/transaction-query`);
+      console.log(`  Refresh Status: POST http://localhost:${PORT}/api/refresh-status`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
