@@ -11,6 +11,8 @@ dotenv.config();
 import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney, updateOrderStatus } from './tools/transferMoney.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
+import { transactionQuery } from './tools/transactionQuery.js';
+import { refreshStatus } from './tools/refreshStatus.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
@@ -18,13 +20,11 @@ import {
   transferMoneySchema, 
   queryExchangeRateSchema, 
   getBeneficiariesSchema,
+  transactionQuerySchema,
+  refreshStatusSchema,
   validateWithZod,
   createErrorResponse 
 } from './utils/validation.js';
-
-// Import route handlers
-import transactionStatusRouter from './routes/transactionStatus.js';
-import aiAgentRouter from './routes/aiAgent.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -80,18 +80,10 @@ app.post('/auth/token', (req, res) => {
   res.json({ token, expiresIn: process.env.JWT_EXPIRES_IN || '1h' });
 });
 
-// Use transaction status routes
-app.use('/api/transaction', transactionStatusRouter);
-
-// Use AI Agent routes
-app.use('/api/ai-agent', aiAgentRouter);
-
-
-
 // API Routes
 
-// Exchange Rate API
-app.post('/api/exchange-rate', authenticateToken, async (req, res) => {
+// 1. Exchange Rate API
+app.post('/api/query-exchange-rate', authenticateToken, async (req, res) => {
   try {
     const validation = validateWithZod(queryExchangeRateSchema, req.body);
     if (!validation.success) {
@@ -126,8 +118,8 @@ app.post('/api/exchange-rate', authenticateToken, async (req, res) => {
   }
 });
 
-// Transfer Money API
-app.post('/api/transfer', authenticateToken, async (req, res) => {
+// 2. Transfer Money API
+app.post('/api/transfer-money', authenticateToken, async (req, res) => {
   try {
     const validation = validateWithZod(transferMoneySchema, req.body);
     if (!validation.success) {
@@ -162,11 +154,8 @@ app.post('/api/transfer', authenticateToken, async (req, res) => {
   }
 });
 
-// Remittance Order Query API
-
-
-// Get Beneficiaries API
-app.post('/api/beneficiaries', authenticateToken, async (req, res) => {
+// 3. Get Beneficiaries API
+app.post('/api/get-beneficiaries', authenticateToken, async (req, res) => {
   try {
     const validation = validateWithZod(getBeneficiariesSchema, req.body);
     if (!validation.success) {
@@ -193,6 +182,78 @@ app.post('/api/beneficiaries', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error in beneficiaries API:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// 4. Transaction Query API
+app.post('/api/transaction-query', authenticateToken, async (req, res) => {
+  try {
+    const validation = validateWithZod(transactionQuerySchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: validation.error
+      });
+    }
+    
+    const result = await transactionQuery(validation.data);
+    
+    if (result.isError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction query failed',
+        message: result.content[0].text
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: JSON.parse(result.content[0].text)
+    });
+  } catch (error) {
+    console.error('Error in transaction query API:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// 5. Refresh Status API
+app.post('/api/refresh-status', authenticateToken, async (req, res) => {
+  try {
+    const validation = validateWithZod(refreshStatusSchema, req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        message: validation.error
+      });
+    }
+    
+    const result = await refreshStatus(validation.data);
+    
+    if (result.isError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Refresh status failed',
+        message: result.content[0].text
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: JSON.parse(result.content[0].text)
+    });
+  } catch (error) {
+    console.error('Error in refresh status API:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error',
