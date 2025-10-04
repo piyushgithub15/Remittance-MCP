@@ -303,17 +303,17 @@
                   },
                   "callBackProvider": {
                     "type": "string",
-                    "enum": ["voice", "text"],
+                    "enum": ["text"],
                     "description": "Callback provider type for confirmation",
-                    "example": "voice",
-                    "default": "voice"
+                    "example": "text",
+                    "default": "text"
                   }
                 },
                 "example": {
                   "beneficiaryId": "123",
                   "beneficiaryName": "John Smith",
                   "sendAmount": 1000,
-                  "callBackProvider": "voice"
+                  "callBackProvider": "text"
                 }
               }
             }
@@ -1112,19 +1112,19 @@
               "properties": {
                 "type": {
                   "type": "string",
-                  "example": "voice"
+                  "example": "text"
                 },
                 "url": {
                   "type": "string",
-                  "example": "http://localhost:8080/voice/"
+                  "example": "http://localhost:8080/text/"
                 },
                 "token": {
                   "type": "string",
-                  "example": "yourVoiceToken"
+                  "example": "yourTextToken"
                 },
                 "description": {
                   "type": "string",
-                  "example": "Voice-based confirmation callbacks"
+                  "example": "Text-based confirmation callbacks"
                 }
               }
             }
@@ -1155,25 +1155,25 @@
               },
               "link": {
                 "type": "string",
-                "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=voice"
+                "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=text"
               }
             }
           },
           "paymentLink": {
             "type": "string",
-            "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=voice"
+            "example": "botimapp://pay?token=pay_abc123&amount=1010.00&beneficiary=John%20Smith&callback=text"
           },
           "callBackProvider": {
             "type": "string",
-            "example": "voice"
+            "example": "text"
           },
           "callBackUrl": {
             "type": "string",
-            "example": "http://localhost:8080/voice/"
+            "example": "http://localhost:8080/text/"
           },
           "callBackToken": {
             "type": "string",
-            "example": "yourVoiceToken"
+            "example": "yourTextToken"
           },
           "transactionDetails": {
             "type": "object",

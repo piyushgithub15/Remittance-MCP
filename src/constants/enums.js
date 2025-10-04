@@ -30,16 +30,14 @@ export const DISPUTE_TYPE = {
   BENEFICIARY_NOT_RECEIVED: 'beneficiary_not_received',
 };
 
-// Callback Provider - Only the 2 types used
+// Callback Provider - Only text type used
 export const CALLBACK_PROVIDER = {
-  VOICE: 'voice',
   TEXT: 'text'
 };
 
-// Communication Channel - Only the 3 channels used
+// Communication Channel - Only the 2 channels used
 export const COMMUNICATION_CHANNEL = {
   EMAIL: 'email',
-  CALL: 'call',
   CHAT: 'chat'
 };
 

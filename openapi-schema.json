@@ -22,6 +22,7 @@
   "paths": {
     "/api/query-exchange-rate": {
       "post": {
+        "operationId": "queryExchangeRate",
         "summary": "Query exchange rate",
         "description": "Get current exchange rates for international remittance",
         "tags": ["Exchange Rates"],
@@ -76,6 +77,7 @@
     },
     "/api/transfer-money": {
       "post": {
+        "operationId": "transferMoney",
         "summary": "Transfer money",
         "description": "Execute international money transfers with verification",
         "tags": ["Transfers"],
@@ -106,9 +108,9 @@
                   },
                   "callBackProvider": {
                     "type": "string",
-                    "enum": ["voice", "text"],
+                    "enum": ["text"],
                     "description": "Callback provider type",
-                    "default": "voice"
+                    "default": "text"
                   },
                   "lastFourDigits": {
                     "type": "string",
@@ -153,6 +155,7 @@
     },
     "/api/get-beneficiaries": {
       "post": {
+        "operationId": "getBeneficiaries",
         "summary": "Get beneficiaries",
         "description": "Retrieve user's saved beneficiaries with filtering",
         "tags": ["Beneficiaries"],
@@ -236,6 +239,7 @@
     },
     "/api/transaction-query": {
       "post": {
+        "operationId": "queryTransactions",
         "summary": "Query transactions",
         "description": "Query transaction history or check specific transaction details",
         "tags": ["Transactions"],
@@ -326,6 +330,7 @@
     },
     "/api/refresh-status": {
       "post": {
+        "operationId": "refreshStatus",
         "summary": "Refresh transaction status",
         "description": "Refresh transaction status to reveal actual status",
         "tags": ["Transactions"],
@@ -385,6 +390,7 @@
     },
     "/actuator/health": {
       "get": {
+        "operationId": "healthCheck",
         "summary": "Health check",
         "description": "Check API health status",
         "tags": ["System"],

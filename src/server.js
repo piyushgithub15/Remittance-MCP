@@ -155,8 +155,8 @@ class RemittanceMCPServer {
                 },
                 callBackProvider: {
                   type: 'string',
-                  enum: ['voice', 'text'],
-                  description: 'Callback provider type: voice for voice confirmation or text for text confirmation (default: voice)',
+                  enum: ['text'],
+                  description: 'Callback provider type: text for text confirmation (default: text)',
                 },
                 lastFourDigits: {
                   type: 'string',

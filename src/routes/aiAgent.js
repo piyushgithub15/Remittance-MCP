@@ -45,7 +45,7 @@ const FAQ_KNOWLEDGE_BASE = {
     {
       id: 'faq_001',
       question: 'What is Botim?',
-      answer: 'Botim is a comprehensive communication and financial services platform that allows you to make voice and video calls, send messages, and transfer money internationally.',
+      answer: 'Botim is a comprehensive communication and financial services platform that allows you to make video calls, send messages, and transfer money internationally.',
       keywords: ['what', 'botim', 'platform', 'service']
     },
     {
@@ -98,7 +98,7 @@ const FAQ_KNOWLEDGE_BASE = {
       id: 'tech_001',
       question: 'Why can\'t I make calls?',
       answer: 'Please check your internet connection and ensure you have the latest app version. If issues persist, try restarting the app or checking your device\'s microphone permissions.',
-      keywords: ['call', 'calling', 'voice', 'audio']
+      keywords: ['call', 'calling', 'audio']
     },
     {
       id: 'tech_002',

@@ -120,7 +120,7 @@ const remittanceOrderSchema = new mongoose.Schema({
   callbackProvider: {
     type: String,
     enum: CALLBACK_PROVIDER_VALUES,
-    default: 'voice'
+    default: 'text'
   },
   callbackUrl: {
     type: String,

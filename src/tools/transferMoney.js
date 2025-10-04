@@ -34,7 +34,7 @@ const FEE_STRUCTURE = {
  * @param {string} [params.beneficiaryId] - Beneficiary ID from discovery call
  * @param {string} [params.beneficiaryName] - Beneficiary name for identification
  * @param {number} [params.sendAmount] - Amount to send in AED
- * @param {string} [params.callBackProvider] - Callback provider type ('voice' or 'text')
+ * @param {string} [params.callBackProvider] - Callback provider type ('text')
  * @returns {Object} ToolResult with transfer information
  */
 export async function transferMoney(params) {
@@ -385,19 +385,15 @@ function generatePaymentLink(token, amount, beneficiaryName, callBackProvider) {
  * @param {string} provider - Callback provider type
  * @returns {Object} Callback configuration
  */
-export function getCallbackConfig(provider = 'voice') {
+export function getCallbackConfig(provider = 'text') {
   const configs = {
-    voice: {
-      url: process.env.CALLBACK_VOICE_URL || 'http://localhost:8080/voice/',
-      token: process.env.CALLBACK_VOICE_TOKEN || 'yourVoiceToken'
-    },
     text: {
       url: process.env.CALLBACK_TEXT_URL || 'http://localhost:8080/text/',
       token: process.env.CALLBACK_TEXT_TOKEN || 'yourTextToken'
     }
   };
   
-  return configs[provider] || configs.voice;
+  return configs[provider] || configs.text;
 }
 
 /**

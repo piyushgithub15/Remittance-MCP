@@ -25,7 +25,6 @@ import {
 // Import route handlers
 import transactionStatusRouter from './routes/transactionStatus.js';
 import aiAgentRouter from './routes/aiAgent.js';
-import voiceWorkflowRouter from './routes/voiceWorkflow.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -88,8 +87,6 @@ app.use('/api/transaction', transactionStatusRouter);
 app.use('/api/ai-agent', aiAgentRouter);
 
 
-// Use Voice Workflow routes
-app.use('/api/voice', voiceWorkflowRouter);
 
 // API Routes
 
