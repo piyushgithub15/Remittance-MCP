@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
-import { checkVerificationRequired } from '../utils/verificationStore.js';
+import { verifyUser } from '../utils/verificationStore.js';
 
 // Validation schema for transaction query parameters
 export const transactionQuerySchema = z.object({
@@ -16,7 +16,11 @@ export const transactionQuerySchema = z.object({
   orderCount: z.number().int().min(1).max(50).default(10),
   
   // For delay information
-  includeDelayInfo: z.boolean().optional().default(false)
+  includeDelayInfo: z.boolean().optional().default(false),
+  
+  // Verification parameters
+  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
 });
 
 // Default user ID for demo purposes
@@ -54,37 +58,36 @@ export async function transactionQuery(params) {
       };
     }
 
-    const { orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo } = validation.data;
+    const { orderNo, transferMode, country, currency, orderDate, orderCount, includeDelayInfo, lastFourDigits, expiryDate } = validation.data;
 
-  // Check verification for all operations
-  const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'transaction');
-  if (verificationCheck.requiresVerification) {
-    return {
-      content: [
-        {
-          type: 'text',
+    // Verify user identity
+    const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
+    if (!verification.verified) {
+      return {
+        content: [
+          {
+            type: 'text',
             text: JSON.stringify({
               code: 401,
-              message: 'Verification required',
+              message: 'Verification failed',
               data: {
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: verificationCheck.message
+                verified: false,
+                message: verification.message
               }
             })
-        }
-      ],
-      isError: true
-    };
-  }
+          }
+        ],
+        isError: true
+      };
+    }
 
-  // If orderNo is provided, check specific order timeframe
-  if (orderNo) {
-    return await handleSpecificOrderQuery(orderNo, includeDelayInfo);
-  } else {
-    // Otherwise, return list of orders with timeframe info
-    return await handleOrderListQuery(transferMode, country, currency, orderDate, orderCount);
-  }
+    // If orderNo is provided, check specific order timeframe
+    if (orderNo) {
+      return await handleSpecificOrderQuery(orderNo, includeDelayInfo);
+    } else {
+      // Otherwise, return list of orders with timeframe info
+      return await handleOrderListQuery(transferMode, country, currency, orderDate, orderCount);
+    }
 
   } catch (error) {
     console.error('Query failed');

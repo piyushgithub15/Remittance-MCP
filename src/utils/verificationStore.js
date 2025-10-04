@@ -4,6 +4,7 @@
  */
 
 import Verification from '../models/Verification.js';
+import Beneficiary from '../models/Beneficiary.js';
 
 // Verification expiry time in milliseconds (5 minutes)
 const VERIFICATION_EXPIRY_MS = 5 * 60 * 1000;
@@ -52,65 +53,18 @@ export async function storeVerification(userId, beneficiaryId, lastFourDigits, e
 }
 
 /**
- * Check if user is verified within the last 5 minutes
+ * Check if user is verified (always requires verification)
  * @param {string} userId - User ID
  * @returns {Object} Verification status
  */
 export async function checkVerificationStatus(userId) {
-  try {
-    const verification = await Verification.findOne({
-      userId,
-      isActive: true,
-      expiresAt: { $gt: new Date() }
-    }).sort({ verifiedAt: -1 });
-    
-    if (!verification) {
-      return {
-        isVerified: false,
-        reason: 'NO_VERIFICATION',
-        message: 'No verification found for this user',
-        requiresVerification: true
-      };
-    }
-    
-    const now = new Date();
-    const timeRemaining = verification.expiresAt.getTime() - now.getTime();
-    
-    if (timeRemaining <= 0) {
-      // Verification expired, deactivate it
-      await Verification.updateOne(
-        { _id: verification._id },
-        { isActive: false }
-      );
-      return {
-        isVerified: false,
-        reason: 'VERIFICATION_EXPIRED',
-        message: 'Verification has expired (older than 5 minutes)',
-        requiresVerification: true
-      };
-    }
-    
-    return {
-      isVerified: true,
-      reason: 'VERIFIED',
-      message: 'User is verified and within 5-minute window',
-      requiresVerification: false,
-      verification: {
-        beneficiaryId: verification.beneficiaryId,
-        verifiedAt: verification.verifiedAt,
-        expiresAt: verification.expiresAt,
-        timeRemaining: Math.floor(timeRemaining / 1000) // seconds remaining
-      }
-    };
-  } catch (error) {
-    console.error('Check verification failed');
-    return {
-      isVerified: false,
-      reason: 'ERROR',
-      message: 'Verification check failed',
-      requiresVerification: true
-    };
-  }
+  // Always require verification - no expiry logic
+  return {
+    isVerified: false,
+    reason: 'VERIFICATION_REQUIRED',
+    message: 'Verification required for every operation',
+    requiresVerification: true
+  };
 }
 
 /**
@@ -193,10 +147,6 @@ export async function checkVerificationRequired(userId, action = 'transaction') 
     return {
       requiresVerification: true,
       message: `Identity verification required for ${action}. Please provide the last 4 digits of your Emirates ID and expiry date.`,
-      verificationPrompt: {
-        lastFourDigits: 'Please provide the last 4 digits of your Emirates ID',
-        expiryDate: 'Please provide the expiry date in DD/MM/YYYY format'
-      },
       status
     };
   }
@@ -217,11 +167,118 @@ setInterval(async () => {
   }
 }, 60000);
 
+/**
+ * Simple verification function for tools to call directly
+ * @param {string} userId - User ID
+ * @param {string} lastFourDigits - Last 4 digits of Emirates ID
+ * @param {string} expiryDate - Expiry date in DD/MM/YYYY format
+ * @returns {Object} Verification result
+ */
+export async function verifyUser(userId, lastFourDigits, expiryDate) {
+  try {
+
+    // Validate input format
+    if (!lastFourDigits || lastFourDigits.length !== 4 || !/^\d{4}$/.test(lastFourDigits)) {
+      return {
+        verified: false,
+        message: 'Invalid last 4 digits format'
+      };
+    }
+
+    if (!expiryDate || !/^\d{2}\/\d{2}\/\d{4}$/.test(expiryDate)) {
+      return {
+        verified: false,
+        message: 'Invalid expiry date format'
+      };
+    }
+
+    // Search for beneficiary with matching last 4 digits
+    const beneficiary = await Beneficiary.findOne({
+      userId,
+      'idCard.idNumber': { $regex: `-\\d{4}-${lastFourDigits}$` },
+      isActive: true
+    });
+
+    if (!beneficiary) {
+      return {
+        verified: false,
+        message: 'No matching beneficiary found'
+      };
+    }
+
+    // Check if multiple beneficiaries match (should be unique)
+    const matchingBeneficiaries = await Beneficiary.find({
+      userId,
+      'idCard.idNumber': { $regex: `-\\d{4}-${lastFourDigits}$` },
+      isActive: true
+    });
+
+    if (matchingBeneficiaries.length > 1) {
+      return {
+        verified: false,
+        message: 'Multiple beneficiaries found with same last 4 digits'
+      };
+    }
+
+    // Parse the provided expiry date (DD/MM/YYYY format)
+    const [day, month, year] = expiryDate.split('/');
+    const providedExpiryDate = new Date(year, month - 1, day); // month is 0-indexed
+
+    // Check if the provided date is valid
+    if (isNaN(providedExpiryDate.getTime())) {
+      return {
+        verified: false,
+        message: 'Invalid expiry date format'
+      };
+    }
+
+    // Get stored expiry date from beneficiary record
+    const storedExpiryDate = new Date(beneficiary.idCard.expiryDate);
+
+    // Check if the provided expiry date matches the stored expiry date
+    const providedYear = providedExpiryDate.getFullYear();
+    const providedMonth = providedExpiryDate.getMonth() + 1; // getMonth() is 0-indexed
+    const providedDay = providedExpiryDate.getDate();
+
+    const storedYear = storedExpiryDate.getFullYear();
+    const storedMonth = storedExpiryDate.getMonth() + 1;
+    const storedDay = storedExpiryDate.getDate();
+
+    if (providedYear !== storedYear || providedMonth !== storedMonth || providedDay !== storedDay) {
+      return {
+        verified: false,
+        message: 'Expiry date does not match'
+      };
+    }
+
+    // Check if the Emirates ID is expired
+    const currentDate = new Date();
+    if (storedExpiryDate < currentDate) {
+      return {
+        verified: false,
+        message: 'Emirates ID has expired'
+      };
+    }
+
+    return {
+      verified: true,
+      message: 'Identity verified successfully'
+    };
+  } catch (error) {
+    console.error('Verify user failed');
+    return {
+      verified: false,
+      message: 'Verification failed'
+    };
+  }
+}
+
 export default {
   storeVerification,
   checkVerificationStatus,
   clearVerification,
   getAllVerifications,
   cleanupExpiredVerifications,
-  checkVerificationRequired
+  checkVerificationRequired,
+  verifyUser
 };

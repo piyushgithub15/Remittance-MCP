@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import RemittanceOrder from '../models/RemittanceOrder.js';
-import { checkVerificationRequired } from '../utils/verificationStore.js';
+import { verifyUser } from '../utils/verificationStore.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -59,7 +59,9 @@ function calculateExpectedArrivalTime(order, transactionTime) {
 
 // Validation schema for refresh status parameters
 export const refreshStatusSchema = z.object({
-  orderNo: z.string().min(1, 'orderNo must be provided')
+  orderNo: z.string().min(1, 'orderNo must be provided'),
+  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
 });
 
 /**
@@ -87,20 +89,21 @@ export async function refreshStatus(params) {
       };
     }
 
-    // Check verification
-    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'refresh');
-    if (verificationCheck.requiresVerification) {
+    const { orderNo, lastFourDigits, expiryDate } = validation.data;
+
+    // Verify user identity
+    const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
+    if (!verification.verified) {
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
               code: 401,
-              message: 'Verification required',
+              message: 'Verification failed',
               data: {
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: verificationCheck.message
+                verified: false,
+                message: verification.message
               }
             })
           }
@@ -108,9 +111,6 @@ export async function refreshStatus(params) {
         isError: true
       };
     }
-
-    const { orderNo } = validation.data;
-
 
     const order = await RemittanceOrder.findOne({ 
       orderNo,
@@ -279,14 +279,14 @@ export async function refreshStatus(params) {
  * @param {string} orderNo - Order number
  * @returns {Object} Refresh status information
  */
-export async function checkRefreshNeeded(orderNo) {
+export async function checkRefreshNeeded(orderNo, lastFourDigits, expiryDate) {
   try {
-    // Check verification status for refresh operations
-    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'check_refresh');
-    if (verificationCheck.requiresVerification) {
+    // Verify user identity
+    const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
+    if (!verification.verified) {
       return {
         needsRefresh: false,
-        message: 'Verification required',
+        message: 'Verification failed',
         requiresVerification: true
       };
     }

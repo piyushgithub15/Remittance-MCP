@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import Beneficiary from '../models/Beneficiary.js';
 import { TRANSFER_MODE_VALUES } from '../constants/enums.js';
-import { checkVerificationRequired } from '../utils/verificationStore.js';
+import { verifyUser } from '../utils/verificationStore.js';
 
 // Validation schema for getBeneficiaries parameters
 export const getBeneficiariesSchema = z.object({
@@ -9,7 +9,9 @@ export const getBeneficiariesSchema = z.object({
   currency: z.string().length(3, 'currency must be a 3-character ISO 4217 currency code').optional(),
   transferMode: z.enum(TRANSFER_MODE_VALUES).optional(),
   isActive: z.boolean().optional().default(true),
-  limit: z.number().int().min(1).max(100).default(50)
+  limit: z.number().int().min(1).max(100).default(50),
+  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
 });
 
 // Default user ID for demo purposes
@@ -42,20 +44,21 @@ export async function getBeneficiaries(params) {
       };
     }
 
-    // Check verification
-    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'beneficiaries');
-    if (verificationCheck.requiresVerification) {
+    const { country, currency, transferMode, isActive, limit, lastFourDigits, expiryDate } = validation.data;
+
+    // Verify user identity
+    const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
+    if (!verification.verified) {
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
               code: 401,
-              message: 'Verification required',
+              message: 'Verification failed',
               data: {
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: verificationCheck.message
+                verified: false,
+                message: verification.message
               }
             })
           }
@@ -63,8 +66,6 @@ export async function getBeneficiaries(params) {
         isError: true
       };
     }
-
-    const { country, currency, transferMode, isActive, limit } = validation.data;
 
     // Build query filters
     const query = { 

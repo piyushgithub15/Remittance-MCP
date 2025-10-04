@@ -18,10 +18,8 @@ dotenv.config();
 import { queryExchangeRate } from './tools/queryExchangeRate.js';
 import { transferMoney } from './tools/transferMoney.js';
 import { getBeneficiaries } from './tools/getBeneficiaries.js';
-import { verifyIdentity } from './tools/verifyIdentity.js';
 import { transactionQuery } from './tools/transactionQuery.js';
 import { refreshStatus } from './tools/refreshStatus.js';
-import { checkVerificationStatusTool } from './tools/checkVerificationStatus.js';
 import { generateJWTToken } from './utils/jwt.js';
 import { connectDatabase } from './config/database.js';
 import { seedAllData } from './utils/seedData.js';
@@ -33,10 +31,8 @@ import {
   validateWithZod,
   createErrorResponse 
 } from './utils/validation.js';
-import { verifyIdentitySchema } from './tools/verifyIdentity.js';
 import { transactionQuerySchema } from './tools/transactionQuery.js';
 import { refreshStatusSchema } from './tools/refreshStatus.js';
-import { checkVerificationStatusSchema } from './tools/checkVerificationStatus.js';
 
 const app = express();
 const PORT = process.env.PORT || 8070;
@@ -162,8 +158,18 @@ class RemittanceMCPServer {
                   enum: ['voice', 'text'],
                   description: 'Callback provider type: voice for voice confirmation or text for text confirmation (default: voice)',
                 },
+                lastFourDigits: {
+                  type: 'string',
+                  pattern: '^\\d{4}$',
+                  description: 'Last 4 digits of Emirates ID (e.g., 1234)',
+                },
+                expiryDate: {
+                  type: 'string',
+                  pattern: '^\\d{2}/\\d{2}/\\d{4}$',
+                  description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
+                },
               },
-              required: ['beneficiaryId', 'beneficiaryName', 'sendAmount'],
+              required: ['lastFourDigits', 'expiryDate'],
             },
           },
           {
@@ -195,15 +201,6 @@ class RemittanceMCPServer {
                   maximum: 100,
                   description: 'Maximum number of beneficiaries to return (1-100, default: 50)',
                 },
-              },
-            },
-          },
-          {
-            name: 'verifyIdentity',
-            description: 'Verify customer identity using last four digits of Emirates ID and expiry date',
-            inputSchema: {
-              type: 'object',
-              properties: {
                 lastFourDigits: {
                   type: 'string',
                   pattern: '^\\d{4}$',
@@ -213,10 +210,6 @@ class RemittanceMCPServer {
                   type: 'string',
                   pattern: '^\\d{2}/\\d{2}/\\d{4}$',
                   description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
-                },
-                beneficiaryId: {
-                  type: 'string',
-                  description: 'Optional beneficiary ID to verify against',
                 },
               },
               required: ['lastFourDigits', 'expiryDate'],
@@ -260,8 +253,18 @@ class RemittanceMCPServer {
                   type: 'boolean',
                   description: 'Include delay information',
                 },
+                lastFourDigits: {
+                  type: 'string',
+                  pattern: '^\\d{4}$',
+                  description: 'Last 4 digits of Emirates ID (e.g., 1234)',
+                },
+                expiryDate: {
+                  type: 'string',
+                  pattern: '^\\d{2}/\\d{2}/\\d{4}$',
+                  description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
+                },
               },
-              required: [],
+              required: ['lastFourDigits', 'expiryDate'],
             },
           },
           {
@@ -274,22 +277,18 @@ class RemittanceMCPServer {
                   type: 'string',
                   description: 'Order number to refresh status for',
                 },
-              },
-              required: ['orderNo'],
-            },
-          },
-          {
-            name: 'checkVerificationStatus',
-            description: 'Check if user is verified within the last 5 minutes. Returns verification status and prompts for verification if needed.',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                action: {
+                lastFourDigits: {
                   type: 'string',
-                  description: 'Action being performed (default: transaction)',
+                  pattern: '^\\d{4}$',
+                  description: 'Last 4 digits of Emirates ID (e.g., 1234)',
+                },
+                expiryDate: {
+                  type: 'string',
+                  pattern: '^\\d{2}/\\d{2}/\\d{4}$',
+                  description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
                 },
               },
-              required: [],
+              required: ['orderNo', 'lastFourDigits', 'expiryDate'],
             },
           },
         ],
@@ -326,14 +325,6 @@ class RemittanceMCPServer {
             }
             
             return await getBeneficiaries(beneficiariesValidation.data);
-          case 'verifyIdentity':
-            // Validate using Zod schema
-            const identityValidation = validateWithZod(verifyIdentitySchema, args);
-            if (!identityValidation.success) {
-              return createErrorResponse(identityValidation.error);
-            }
-            
-            return await verifyIdentity(identityValidation.data);
           case 'transactionQuery':
             // Validate using Zod schema
             const transactionValidation = validateWithZod(transactionQuerySchema, args);
@@ -350,14 +341,6 @@ class RemittanceMCPServer {
             }
             
             return await refreshStatus(refreshValidation.data);
-          case 'checkVerificationStatus':
-            // Validate using Zod schema
-            const verificationValidation = validateWithZod(checkVerificationStatusSchema, args);
-            if (!verificationValidation.success) {
-              return createErrorResponse(verificationValidation.error);
-            }
-            
-            return await checkVerificationStatusTool(verificationValidation.data);
           default:
             throw new Error(`Unknown tool: ${name}`);
         }
@@ -490,17 +473,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         }
         result = await getBeneficiaries(beneficiariesValidation.data);
         break;
-      case 'verifyIdentity':
-        // Validate using Zod schema
-        const identityValidation = validateWithZod(verifyIdentitySchema, params);
-        if (!identityValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${identityValidation.error}`
-          });
-        }
-        result = await verifyIdentity(identityValidation.data);
-        break;
       case 'transactionQuery':
         // Validate using Zod schema
         const transactionValidation = validateWithZod(transactionQuerySchema, params);
@@ -522,17 +494,6 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
           });
         }
         result = await refreshStatus(refreshValidation.data);
-        break;
-      case 'checkVerificationStatus':
-        // Validate using Zod schema
-        const verificationValidation = validateWithZod(checkVerificationStatusSchema, params);
-        if (!verificationValidation.success) {
-          return res.status(400).json({
-            code: 1,
-            content: `Validation error: ${verificationValidation.error}`
-          });
-        }
-        result = await checkVerificationStatusTool(verificationValidation.data);
         break;
       default:
         return res.status(400).json({

@@ -5,7 +5,7 @@ import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
 import RemittanceOrder from '../models/RemittanceOrder.js';
 import { CALLBACK_PROVIDER_VALUES } from '../constants/enums.js';
-import { checkVerificationRequired } from '../utils/verificationStore.js';
+import { verifyUser } from '../utils/verificationStore.js';
 
 // Default user ID for demo purposes
 const DEFAULT_USER_ID = 'agent1';
@@ -15,7 +15,9 @@ export const transferMoneySchema = z.object({
   beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string').optional(),
   beneficiaryName: z.string().optional(),
   sendAmount: z.number().positive('sendAmount must be a positive number').optional(),
-  callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional()
+  callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional(),
+  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
 });
 
 // Fee structure
@@ -37,20 +39,21 @@ const FEE_STRUCTURE = {
  */
 export async function transferMoney(params) {
   try {
-    // Check verification for all operations
-    const verificationCheck = await checkVerificationRequired(DEFAULT_USER_ID, 'transfer');
-    if (verificationCheck.requiresVerification) {
+    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate } = params;
+
+    // Verify user identity
+    const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
+    if (!verification.verified) {
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify({
               code: 401,
-              message: 'Verification required',
+              message: 'Verification failed',
               data: {
-                requiresVerification: true,
-                reason: verificationCheck.status.reason,
-                message: verificationCheck.message
+                verified: false,
+                message: verification.message
               }
             })
           }
@@ -58,8 +61,6 @@ export async function transferMoney(params) {
         isError: true
       };
     }
-
-    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider } = params;
 
     // Stage 1: Discovery call (no beneficiaryId, beneficiaryName, or sendAmount)
     if (!beneficiaryId && !beneficiaryName && !sendAmount) {
