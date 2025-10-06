@@ -390,6 +390,10 @@ export function getCallbackConfig(provider = 'text') {
     text: {
       url: process.env.CALLBACK_TEXT_URL || 'http://localhost:8080/text/',
       token: process.env.CALLBACK_TEXT_TOKEN || 'yourTextToken'
+    },
+    voice: {
+      url: process.env.CALLBACK_VOICE_URL || 'http://localhost:8080/voice/',
+      token: process.env.CALLBACK_VOICE_TOKEN || 'yourVoiceToken'
     }
   };
   

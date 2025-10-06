@@ -30,9 +30,10 @@ export const DISPUTE_TYPE = {
   BENEFICIARY_NOT_RECEIVED: 'beneficiary_not_received',
 };
 
-// Callback Provider - Only text type used
+// Callback Provider - text and voice types
 export const CALLBACK_PROVIDER = {
-  TEXT: 'text'
+  TEXT: 'text',
+  VOICE: 'voice'
 };
 
 // Communication Channel - Only the 2 channels used
