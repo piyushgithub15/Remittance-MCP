@@ -12,9 +12,9 @@ const DEFAULT_USER_ID = 'agent1';
 
 // Validation schema for transferMoney parameters
 export const transferMoneySchema = z.object({
-  beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string').optional(),
-  beneficiaryName: z.string().optional(),
-  sendAmount: z.number().positive('sendAmount must be a positive number').optional(),
+  beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string'),
+  beneficiaryName: z.string(),
+  sendAmount: z.number().positive('sendAmount must be a positive number'),
   callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional(),
   lastFourDigits: z.string().length(4, 'Verification is required: lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'Verification is required: lastFourDigits must contain only digits'),
   expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Verification is required: expiryDate must be in DD/MM/YYYY format')
