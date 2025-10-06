@@ -19,8 +19,8 @@ export const transactionQuerySchema = z.object({
   includeDelayInfo: z.boolean().optional().default(false),
   
   // Verification parameters
-  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
-  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
+  lastFourDigits: z.string().length(4, 'Verification is required: lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'Verification is required: lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Verification is required: expiryDate must be in DD/MM/YYYY format')
 });
 
 // Default user ID for demo purposes

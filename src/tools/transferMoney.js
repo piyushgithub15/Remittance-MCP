@@ -16,8 +16,8 @@ export const transferMoneySchema = z.object({
   beneficiaryName: z.string().optional(),
   sendAmount: z.number().positive('sendAmount must be a positive number').optional(),
   callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional(),
-  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
-  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
+  lastFourDigits: z.string().length(4, 'Verification is required: lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'Verification is required: lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Verification is required: expiryDate must be in DD/MM/YYYY format')
 });
 
 // Fee structure

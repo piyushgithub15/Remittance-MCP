@@ -9,15 +9,15 @@ const router = express.Router();
 const transactionStatusSchema = z.object({
   orderNo: z.string().min(1, 'Order number is required'),
   customerInfo: z.object({
-    eidLastFour: z.string().length(4, 'EID last four digits must be exactly 4 characters'),
-    eidExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'EID expiry must be in YYYY-MM-DD format')
+    eidLastFour: z.string().length(4, 'Verification is required: EID last four digits must be exactly 4 characters'),
+    eidExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Verification is required: EID expiry must be in YYYY-MM-DD format')
   }).optional()
 });
 
 const identityVerificationSchema = z.object({
   orderNo: z.string().min(1, 'Order number is required'),
-  eidLastFour: z.string().length(4, 'EID last four digits must be exactly 4 characters'),
-  eidExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'EID expiry must be in YYYY-MM-DD format')
+  eidLastFour: z.string().length(4, 'Verification is required: EID last four digits must be exactly 4 characters'),
+  eidExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Verification is required: EID expiry must be in YYYY-MM-DD format')
 });
 
 const statusRefreshSchema = z.object({

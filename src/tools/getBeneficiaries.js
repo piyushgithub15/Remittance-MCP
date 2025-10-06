@@ -10,8 +10,8 @@ export const getBeneficiariesSchema = z.object({
   transferMode: z.enum(TRANSFER_MODE_VALUES).optional(),
   isActive: z.boolean().optional().default(true),
   limit: z.number().int().min(1).max(100).default(50),
-  lastFourDigits: z.string().length(4, 'lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'lastFourDigits must contain only digits'),
-  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'expiryDate must be in DD/MM/YYYY format')
+  lastFourDigits: z.string().length(4, 'Verification is required: lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'Verification is required: lastFourDigits must contain only digits'),
+  expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Verification is required: expiryDate must be in DD/MM/YYYY format')
 });
 
 // Default user ID for demo purposes

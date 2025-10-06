@@ -87,7 +87,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["lastFourDigits", "expiryDate"],
+                "required": ["lastFourDigits", "expiryDate","beneficiaryId","beneficiaryName","sendAmount"],
                 "properties": {
                   "beneficiaryId": {
                     "type": "string",
