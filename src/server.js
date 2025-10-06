@@ -155,7 +155,7 @@ class RemittanceMCPServer {
                 },
                 callBackProvider: {
                   type: 'string',
-                  enum: ['text'],
+                  enum: ['text','voice'],
                   description: 'Callback provider type: text for text confirmation (default: text)',
                 },
                 lastFourDigits: {
@@ -169,7 +169,7 @@ class RemittanceMCPServer {
                   description: 'Expiry date in DD/MM/YYYY format (e.g., 25/12/2025)',
                 },
               },
-              required: ['lastFourDigits', 'expiryDate'],
+              required: ['lastFourDigits', 'expiryDate','beneficiaryId','beneficiaryName','sendAmount'],
             },
           },
           {

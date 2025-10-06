@@ -376,7 +376,7 @@ function generatePaymentLink(token, amount, beneficiaryName, callBackProvider) {
     beneficiary: beneficiaryName,
     callback: callBackProvider
   });
-  
+    
   return `${baseUrl}?${params.toString()}`;
 }
 
