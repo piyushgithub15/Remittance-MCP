@@ -27,7 +27,7 @@ export async function queryExchangeRate(params) {
         content: [
           {
             type: 'text',
-            text: `Query exchange rate failed: ${validation.error.errors[0].message}`
+            text: `Invalid input: ${validation.error.errors[0].message}`
           }
         ],
         isError: true,

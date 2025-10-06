@@ -89,7 +89,7 @@ app.post('/api/query-exchange-rate', authenticateToken, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation error',
+        error: 'Invalid input',
         message: validation.error
       });
     }
@@ -99,7 +99,7 @@ app.post('/api/query-exchange-rate', authenticateToken, async (req, res) => {
     if (result.isError) {
       return res.status(400).json({
         success: false,
-        error: 'Exchange rate query failed',
+        error: 'Service unavailable',
         message: result.content[0].text
       });
     }
@@ -125,7 +125,7 @@ app.post('/api/transfer-money', authenticateToken, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation error',
+        error: 'Invalid input',
         message: validation.error
       });
     }
@@ -161,7 +161,7 @@ app.post('/api/get-beneficiaries', authenticateToken, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation error',
+        error: 'Invalid input',
         message: validation.error
       });
     }
@@ -171,7 +171,7 @@ app.post('/api/get-beneficiaries', authenticateToken, async (req, res) => {
     if (result.isError) {
       return res.status(400).json({
         success: false,
-        error: 'Beneficiaries query failed',
+        error: 'Service unavailable',
         message: result.content[0].text
       });
     }
@@ -197,7 +197,7 @@ app.post('/api/transaction-query', authenticateToken, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation error',
+        error: 'Invalid input',
         message: validation.error
       });
     }
@@ -207,7 +207,7 @@ app.post('/api/transaction-query', authenticateToken, async (req, res) => {
     if (result.isError) {
       return res.status(400).json({
         success: false,
-        error: 'Transaction query failed',
+        error: 'Service unavailable',
         message: result.content[0].text
       });
     }
@@ -233,7 +233,7 @@ app.post('/api/refresh-status', authenticateToken, async (req, res) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        error: 'Validation error',
+        error: 'Invalid input',
         message: validation.error
       });
     }
@@ -243,7 +243,7 @@ app.post('/api/refresh-status', authenticateToken, async (req, res) => {
     if (result.isError) {
       return res.status(400).json({
         success: false,
-        error: 'Refresh status failed',
+        error: 'Service unavailable',
         message: result.content[0].text
       });
     }

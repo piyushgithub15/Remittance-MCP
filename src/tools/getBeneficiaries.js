@@ -36,7 +36,7 @@ export async function getBeneficiaries(params) {
         content: [
           {
             type: 'text',
-            text: `Get beneficiaries failed: ${validation.error.errors[0].message}`
+            text: `Invalid input: ${validation.error.errors[0].message}`
           }
         ],
         isError: true,
@@ -138,7 +138,7 @@ export async function getBeneficiaries(params) {
       content: [
         {
           type: 'text',
-          text: `Get beneficiaries failed: ${error.message}`
+          text: 'Service unavailable'
         }
       ],
       isError: true,

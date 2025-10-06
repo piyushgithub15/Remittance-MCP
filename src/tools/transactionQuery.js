@@ -50,7 +50,7 @@ export async function transactionQuery(params) {
         content: [
           {
             type: 'text',
-            text: `Validation error: ${validation.error.errors[0].message}`
+            text: `Invalid input: ${validation.error.errors[0].message}`
           }
         ],
         isError: true,

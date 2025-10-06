@@ -446,7 +446,7 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         if (!exchangeValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${exchangeValidation.error}`
+            content: `Invalid input: ${exchangeValidation.error}`
           });
         }
         result = await queryExchangeRate(exchangeValidation.data);
@@ -457,7 +457,7 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         if (!transferValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${transferValidation.error}`
+            content: `Invalid input: ${transferValidation.error}`
           });
         }
         result = await transferMoney(transferValidation.data);
@@ -468,7 +468,7 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         if (!beneficiariesValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${beneficiariesValidation.error}`
+            content: `Invalid input: ${beneficiariesValidation.error}`
           });
         }
         result = await getBeneficiaries(beneficiariesValidation.data);
@@ -479,7 +479,7 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         if (!transactionValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${transactionValidation.error}`
+            content: `Invalid input: ${transactionValidation.error}`
           });
         }
         result = await transactionQuery(transactionValidation.data);
@@ -490,7 +490,7 @@ app.post('/mcp/messages', authenticateToken, async (req, res) => {
         if (!refreshValidation.success) {
           return res.status(400).json({
             code: 1,
-            content: `Validation error: ${refreshValidation.error}`
+            content: `Invalid input: ${refreshValidation.error}`
           });
         }
         result = await refreshStatus(refreshValidation.data);

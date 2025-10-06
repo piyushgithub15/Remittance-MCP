@@ -89,7 +89,7 @@ export async function transferMoney(params) {
       content: [
         {
           type: 'text',
-          text: 'Failed'
+          text: 'Transfer failed'
         }
       ],
       isError: true,
