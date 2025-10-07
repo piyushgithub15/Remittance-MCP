@@ -153,11 +153,6 @@ class RemittanceMCPServer {
                   type: 'number',
                   description: 'Amount to send in AED (e.g., 1000.50). Leave null for discovery stage',
                 },
-                callBackProvider: {
-                  type: 'string',
-                  enum: ['text','voice'],
-                  description: 'Callback provider type: text for text confirmation (default: text)',
-                },
                 lastFourDigits: {
                   type: 'string',
                   pattern: '^\\d{4}$',
@@ -560,8 +555,8 @@ app.post('/api/query-exchange-rate', authenticateToken, async (req, res) => {
 
 app.post('/api/transfer-money', authenticateToken, async (req, res) => {
   try {
-    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate } = req.body;
-    const result = await transferMoney({ beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate });
+    const { beneficiaryId, beneficiaryName, sendAmount, lastFourDigits, expiryDate } = req.body;
+    const result = await transferMoney({ beneficiaryId, beneficiaryName, sendAmount, lastFourDigits, expiryDate });
     res.json(result);
   } catch (error) {
     console.error('Transfer money failed');

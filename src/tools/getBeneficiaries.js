@@ -97,12 +97,7 @@ export async function getBeneficiaries(params) {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              code: 200,
-              message: 'No beneficiaries found',
-              data: [],
-              total: 0
-            })
+            text: JSON.stringify([])
           }
         ],
         isError: true
@@ -110,17 +105,12 @@ export async function getBeneficiaries(params) {
     }
 
     // Format response
-    const response = {
-      code: 200,
-      message: 'OK',
-      data: beneficiaries.map(beneficiary => ({
-        id: beneficiary.id,
-        name: beneficiary.name,
-        currency: beneficiary.currency,
-        country: beneficiary.country
-      })),
-      total: beneficiaries.length
-    };
+    const response = beneficiaries.map(beneficiary => ({
+      id: beneficiary.id,
+      name: beneficiary.name,
+      currency: beneficiary.currency,
+      country: beneficiary.country
+    }));
 
     return {
       content: [

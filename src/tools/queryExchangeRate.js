@@ -69,21 +69,9 @@ export async function queryExchangeRate(params) {
 
     // Build response
     const response = {
-      head: {
-        applyStatus: 'SUCCESS',
-        code: '200',
-        msg: 'OK',
-        traceCode: generateTraceCode()
-      },
-      body: {
-        fromCountryCode: exchangeRateData.fromCountry,
-        fromCurrencyCode: exchangeRateData.fromCurrency,
-        fromCurrencyIcon: exchangeRateData.fromCurrencyIcon,
-        toCountryCode: exchangeRateData.toCountry,
-        toCurrencyCode: exchangeRateData.toCurrency,
-        toCurrencyIcon: exchangeRateData.toCurrencyIcon,
-        exchangeRate: exchangeRateData.rate
-      }
+      rate: exchangeRateData.rate,
+      fromCurrency: exchangeRateData.fromCurrency,
+      toCurrency: exchangeRateData.toCurrency
     };
 
     return {

@@ -244,14 +244,7 @@ async function handleOrderListQuery(transferMode, country, currency, orderDate, 
     content: [
       {
         type: 'text',
-        text: JSON.stringify({
-          code: 200,
-          message: 'OK',
-          data: {
-            orders: orderList,
-            total: orderList.length
-          }
-        })
+        text: JSON.stringify(orderList)
       }
     ],
     isError: false

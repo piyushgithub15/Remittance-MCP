@@ -4,7 +4,6 @@ import Beneficiary from '../models/Beneficiary.js';
 import SuggestedAmount from '../models/SuggestedAmount.js';
 import ExchangeRate from '../models/ExchangeRate.js';
 import RemittanceOrder from '../models/RemittanceOrder.js';
-import { CALLBACK_PROVIDER_VALUES } from '../constants/enums.js';
 import { verifyUser } from '../utils/verificationStore.js';
 
 // Default user ID for demo purposes
@@ -15,7 +14,6 @@ export const transferMoneySchema = z.object({
   beneficiaryId: z.string().regex(/^[0-9]+$/, 'beneficiaryId must be a numeric string'),
   beneficiaryName: z.string(),
   sendAmount: z.number().positive('sendAmount must be a positive number'),
-  callBackProvider: z.enum(CALLBACK_PROVIDER_VALUES).optional(),
   lastFourDigits: z.string().length(4, 'Verification is required: lastFourDigits must be exactly 4 digits').regex(/^\d{4}$/, 'Verification is required: lastFourDigits must contain only digits'),
   expiryDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, 'Verification is required: expiryDate must be in DD/MM/YYYY format')
 });
@@ -34,12 +32,11 @@ const FEE_STRUCTURE = {
  * @param {string} [params.beneficiaryId] - Beneficiary ID from discovery call
  * @param {string} [params.beneficiaryName] - Beneficiary name for identification
  * @param {number} [params.sendAmount] - Amount to send in AED
- * @param {string} [params.callBackProvider] - Callback provider type ('text')
  * @returns {Object} ToolResult with transfer information
  */
 export async function transferMoney(params) {
   try {
-    const { beneficiaryId, beneficiaryName, sendAmount, callBackProvider, lastFourDigits, expiryDate } = params;
+    const { beneficiaryId, beneficiaryName, sendAmount, lastFourDigits, expiryDate } = params;
 
     // Verify user identity
     const verification = await verifyUser(DEFAULT_USER_ID, lastFourDigits, expiryDate);
@@ -81,7 +78,7 @@ export async function transferMoney(params) {
       };
     }
 
-    return await handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider);
+    return await handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount);
 
   } catch (error) {
     console.error('Transfer failed');
@@ -125,19 +122,12 @@ async function handleDiscoveryStage() {
     });
 
     const response = {
-      code: 200,
-      message: 'OK',
       beneficiaries: beneficiaries.map(b => ({
         id: b.id,
         name: b.name,
         currency: b.currency
       })),
-      sendAmounts: suggestedAmounts.map(sa => sa.amount),
-      exchangeRate: defaultExchangeRate ? {
-        rate: defaultExchangeRate.rate,
-        fromCurrency: defaultExchangeRate.fromCurrency,
-        toCurrency: defaultExchangeRate.toCurrency
-      } : null
+      amounts: suggestedAmounts.map(sa => sa.amount)
     };
 
     return {
@@ -169,10 +159,9 @@ async function handleDiscoveryStage() {
  * @param {string} beneficiaryId - Selected beneficiary ID
  * @param {string} beneficiaryName - Selected beneficiary name
  * @param {number} sendAmount - Amount to send
- * @param {string} callBackProvider - Callback provider type
  * @returns {Object} Execution response
  */
-async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, callBackProvider) {
+async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount) {
   try {
     // Convert beneficiaryId to number (already validated by Zod)
     const beneficiaryIdNum = parseInt(beneficiaryId);
@@ -256,10 +245,10 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
 
     // Generate payment link
     const paymentToken = generatePaymentToken();
-    const paymentLink = generatePaymentLink(paymentToken, totalAmount, beneficiaryName, callBackProvider);
+    const paymentLink = generatePaymentLink(paymentToken, totalAmount, beneficiaryName);
     
     // Get callback configuration
-    const callbackConfig = getCallbackConfig(callBackProvider);
+    const callbackConfig = getCallbackConfig();
 
     // Generate order number
     const orderNo = generateOrderNumber();
@@ -288,7 +277,6 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
       receivedAmount: receivedAmount,
       paymentToken: paymentToken,
       paymentLink: paymentLink,
-      callbackProvider: callBackProvider,
       callbackUrl: callbackConfig.url,
       callbackToken: callbackConfig.token,
       traceCode: generateTraceCode()
@@ -297,21 +285,15 @@ async function handleExecutionStage(beneficiaryId, beneficiaryName, sendAmount, 
     // Save the order to database
     await remittanceOrder.save();
 
-    const response = {
-      code: 200,
-      message: 'Transfer initiated',
-      orderNo: orderNo,
-      paymentLink: paymentLink,
-      amount: sendAmount,
-      fee: fee,
-      total: totalAmount
-    };
-
     return {
       content: [
         {
           type: 'text',
-          text: JSON.stringify(response)
+          text: JSON.stringify({
+            orderNo: orderNo,
+            paymentLink: paymentLink,
+            total: totalAmount
+          })
         }
       ],
       isError: false
@@ -365,16 +347,15 @@ function generateOrderNumber() {
  * @param {string} token - Payment token
  * @param {number} amount - Total amount
  * @param {string} beneficiaryName - Beneficiary name
- * @param {string} callBackProvider - Callback provider
  * @returns {string} Payment link
  */
-function generatePaymentLink(token, amount, beneficiaryName, callBackProvider) {
+function generatePaymentLink(token, amount, beneficiaryName) {
   const baseUrl = 'botimapp://pay';
   const params = new URLSearchParams({
     token: token,
     amount: amount.toFixed(2),
     beneficiary: beneficiaryName,
-    callback: callBackProvider
+    callback: 'text'
   });
     
   return `${baseUrl}?${params.toString()}`;
@@ -382,22 +363,13 @@ function generatePaymentLink(token, amount, beneficiaryName, callBackProvider) {
 
 /**
  * Get callback configuration
- * @param {string} provider - Callback provider type
  * @returns {Object} Callback configuration
  */
-export function getCallbackConfig(provider = 'text') {
-  const configs = {
-    text: {
-      url: process.env.CALLBACK_TEXT_URL || 'http://localhost:8080/text/',
-      token: process.env.CALLBACK_TEXT_TOKEN || 'yourTextToken'
-    },
-    voice: {
-      url: process.env.CALLBACK_VOICE_URL || 'http://localhost:8080/voice/',
-      token: process.env.CALLBACK_VOICE_TOKEN || 'yourVoiceToken'
-    }
+export function getCallbackConfig() {
+  return {
+    url: process.env.CALLBACK_TEXT_URL || 'http://localhost:8080/text/',
+    token: process.env.CALLBACK_TEXT_TOKEN || 'yourTextToken'
   };
-  
-  return configs[provider] || configs.text;
 }
 
 /**

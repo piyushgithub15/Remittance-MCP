@@ -220,11 +220,7 @@ export async function refreshStatus(params) {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({
-              code: 500,
-              message: 'Failed to update order status',
-              data: null
-            })
+            text: 'Failed to update order status'
           }
         ],
         isError: true,
@@ -241,12 +237,8 @@ export async function refreshStatus(params) {
     }
 
     const response = {
-      code: 200,
-      message: 'OK',
-      data: {
-        orderNo: updatedOrder.orderNo,
-        status: updatedOrder.status
-      }
+      orderNo: updatedOrder.orderNo,
+      status: updatedOrder.status
     };
 
     return {
